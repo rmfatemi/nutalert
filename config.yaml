@@ -1,0 +1,40 @@
+nut_server:
+  host: "10.0.10.101"            # IP address of the NUT server
+  port: 3493                     # Port used for connection
+  command: "list var ups\r"      # Command to fetch UPS data
+  timeout: 2                     # Socket connection timeout in seconds
+
+thresholds:
+  battery_charge: 90             # Minimum acceptable battery charge (%)
+  runtime_thresholds:
+    heavy: 30                    # Expected runtime (minutes) when load >= load_breakpoints.heavy
+    medium: 45                   # Expected runtime (minutes) when load is between light and heavy
+    light: 60                    # Expected runtime (minutes) when load <= load_breakpoints.light
+  load_breakpoints:
+    heavy: 50                    # Load percentage that defines heavy load
+    light: 15                    # Load percentage that defines light load
+  input_voltage:
+    min: 110.0                   # Minimum acceptable input voltage
+    max: 130.0                   # Maximum acceptable input voltage
+  ups_status:
+    acceptable: ["OL", "ONLINE"] # List of acceptable UPS operational statuses
+
+# The alert_formula returns True when an alert should be sent.
+alert_formula:
+  selected: "default"            # Choose one of the following: default, simple, advanced
+  formulas:
+    default: "actual_runtime_minutes < (60 if ups_load <= 15 else (30 if ups_load >= 50 else 60 + ((30-60)/(50-15))*(ups_load-15))) or battery_charge < 90"
+    simple:  "actual_runtime_minutes < 60 or battery_charge < 90"
+    advanced: "((battery_charge / 100.0) * (battery_voltage / input_voltage) * (battery_runtime / 60) / (1 + ups_load / 100.0)) > actual_runtime_minutes or battery_charge < 90"
+
+battery_alert:
+  charge_threshold: 90           # Battery charge (%) below which alerts are triggered
+  alert_interval: 300            # Interval (seconds) between consecutive battery charge alerts
+
+alert_server:                    # Server URL for sending alerts
+  url: "http://10.0.10.101:3001/api/push/LFqtU02CAK"   
+  retry_count: 3                 # Number of retry attempts for sending alerts
+  interval: 300                  # Minimum interval (seconds) between alert notifications
+
+check:
+  interval: 15                   # Time (seconds) between UPS data checks
