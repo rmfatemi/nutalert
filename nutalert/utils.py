@@ -16,6 +16,7 @@ def setup_logger(name=__name__, level=logging.DEBUG):
         logger.addHandler(handler)
     return logger
 
+
 def load_config(config_path="config.yaml"):
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
