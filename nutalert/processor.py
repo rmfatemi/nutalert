@@ -1,4 +1,5 @@
 import re
+import time
 
 from nutalert.fetcher import fetch_nut_data
 from nutalert.notifier import NutAlertNotifier
@@ -35,14 +36,17 @@ def should_alert(nut_values, config):
         "battery_runtime": float(nut_values.get("battery.runtime", 0)),
         "battery_voltage": float(nut_values.get("battery.voltage", 0)),
         "input_voltage": float(nut_values.get("input.voltage", 0)),
-        "actual_runtime_minutes": actual_runtime_minutes
+        "actual_runtime_minutes": actual_runtime_minutes,
+        "ups_status": nut_values.get("ups.status", "").lower()
     }
     try:
         result = eval(formula_expr, {"__builtins__": {}}, env)
-        return bool(result)
+        details = f"selected profile: {selected}, environment {env}"
+        return bool(result), details
     except Exception as e:
-        logger.error("error evaluating alert formula: %s", e)
-        return True
+        details = f"error evaluating formula '{formula_expr}' with environment {env}: {e}"
+        logger.error(details)
+        return True, details
 
 
 def process_nut_data():
@@ -50,16 +54,16 @@ def process_nut_data():
     raw_data = fetch_nut_data(
         host=config["nut_server"]["host"],
         port=config["nut_server"]["port"],
-        command=config["nut_server"]["command"],
-        timeout=config["nut_server"]["timeout"]
+        timeout=config["nut_server"]["timeout"],
     )
     if not raw_data:
         logger.error("no data received from nut server")
         return
     nut_values = parse_nut_data(raw_data)
-    logger.info("parsed nut data: %s", nut_values)
-    if should_alert(nut_values, config):
+    alert, details = should_alert(nut_values, config)
+    if alert:
         logger.warning("alert condition met! sending alert...")
+        logger.warning(details)
         preset = config["runtime_formula"]["selected"]
         alert_message = config["runtime_formula"]["alert_messages"].get(preset, "ups alert: conditions not met")
         title = "nutalert notification"
@@ -68,5 +72,10 @@ def process_nut_data():
     else:
         logger.info("ups conditions are within acceptable range.")
 
+
 if __name__ == "__main__":
-    process_nut_data()
+    config = load_config()
+    interval = config.get("check_interval", 15)
+    while True:
+        process_nut_data()
+        time.sleep(interval)

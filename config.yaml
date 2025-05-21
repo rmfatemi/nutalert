@@ -1,40 +1,80 @@
+##########################
+# nut server configuration
+##########################
+# these settings define the connection parameters to contact the nut (ups) server.
 nut_server:
-  host: "10.0.10.101"            # IP address of the NUT server
-  port: 3493                     # Port used for connection
-  command: "list var ups\r"      # Command to fetch UPS data
-  timeout: 2                     # Socket connection timeout in seconds
+  host: "10.0.10.101"            # ip address of the nut server
+  port: 3493                     # port used for connection
+  timeout: 3                     # socket connection timeout in seconds
 
+# notifications configuration
+# configure notification methods below; at least one must be enabled.
+# here, tcp notifications are enabled (recommended with bitvoker: https://github.com/rmfatemi/bitvoker)
+notifications:
+  # ntfy:
+  #   url: "http://your.ntfy.server.address"
+  #   topic: "nutalert"
+  #   tags: "ups"
+  #   priority: "5"
+  #   token: ""
+  #   username: ""
+  #   password: ""
+  # apprise:
+  #   url: "apprise://"
+  # webhook:
+  #   url: "http://your.webhook.address"
+  #   headers:
+  #     authorization: "your token"
+  #     x-custom-header: "password123"
+  tcp:
+    enabled: true               # enable tcp notifications
+    host: "10.0.10.101"         # tcp server ip to send notifications
+    port: 8083                  # tcp server port
+
+############################
+# alert triggerconfiguration
+############################
+# these settings define ups thresholds and expected runtime values.
+# - battery_charge: minimum acceptable battery charge in percent.
+# - runtime_thresholds: expected runtime (in minutes) based on load.
+#   • heavy: for high ups load (>= load_breakpoints.heavy).
+#   • medium: for moderate ups load.
+#   • light: for low ups load (<= load_breakpoints.light).
+# - load_breakpoints: percentage thresholds to classify ups load as heavy or light.
+# - input_voltage: acceptable input voltage range in volts.
+# - ups_status: a list of acceptable ups status values.
 thresholds:
-  battery_charge: 90             # Minimum acceptable battery charge (%)
+  battery_charge: 90             # minimum acceptable battery charge (%) (used by advanced formula)
   runtime_thresholds:
-    heavy: 30                    # Expected runtime (minutes) when load >= load_breakpoints.heavy
-    medium: 45                   # Expected runtime (minutes) when load is between light and heavy
-    light: 60                    # Expected runtime (minutes) when load <= load_breakpoints.light
+    heavy: 30                    # expected runtime (minutes) when load >= load_breakpoints.heavy
+    medium: 45                   # expected runtime (minutes) for moderate loads
+    light: 60                    # expected runtime (minutes) when load <= load_breakpoints.light
   load_breakpoints:
-    heavy: 50                    # Load percentage that defines heavy load
-    light: 15                    # Load percentage that defines light load
+    heavy: 50                    # ups load percentage that defines heavy load
+    light: 15                    # ups load percentage that defines light load
   input_voltage:
-    min: 110.0                   # Minimum acceptable input voltage
-    max: 130.0                   # Maximum acceptable input voltage
+    min: 110.0                   # minimum acceptable input voltage (volts)
+    max: 130.0                   # maximum acceptable input voltage (volts)
   ups_status:
-    acceptable: ["OL", "ONLINE"] # List of acceptable UPS operational statuses
+    acceptable: ["ol", "online"] # acceptable ups operational statuses
 
-# The alert_formula returns True when an alert should be sent.
-alert_formula:
-  selected: "default"            # Choose one of the following: default, simple, advanced
+# the runtime formulas combine two types of numbers:
+#   - absolute runtime values in minutes (e.g. 60, 40)
+#   - percentages used for conditions (e.g. 15, 20) that relate to ups load.
+# the sample combined formula works as follows:
+#   - if ups load is <= 15 and ups status is acceptable (i.e., "ol" or "online"), expect 60 minutes.
+#   - if ups load is >= 20 or ups status is not acceptable, expect 40 minutes.
+#   - for ups load values between 15 and 20 (with acceptable status), runtime is linearly interpolated between 60 and 40.
+runtime_formula:
+  selected: "combined"           # choose one of the following: custom (recommended), combined, advanced
   formulas:
-    default: "actual_runtime_minutes < (60 if ups_load <= 15 else (30 if ups_load >= 50 else 60 + ((30-60)/(50-15))*(ups_load-15))) or battery_charge < 90"
-    simple:  "actual_runtime_minutes < 60 or battery_charge < 90"
-    advanced: "((battery_charge / 100.0) * (battery_voltage / input_voltage) * (battery_runtime / 60) / (1 + ups_load / 100.0)) > actual_runtime_minutes or battery_charge < 90"
+    combined: "60 if (ups_load <= 15 and ups_status in ['ol','online']) else (40 if (ups_load >= 20 or ups_status not in ['ol','online']) else 60 + ((40-60)/(20-15))*(ups_load-15))"
+    advanced: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (battery_runtime / 60) / (1 + ups_load / 100.0)"
+    custom: "custom_python_code" # you can add a custom python expression here inspired by "combined" and "advance" templates
+  alert_messages:
+    combined: "ups alert: runtime below expected (combined preset)"
+    advanced: "ups alert: advanced check failed"
+    custom: "ups alert: custom conditions not met"
 
-battery_alert:
-  charge_threshold: 90           # Battery charge (%) below which alerts are triggered
-  alert_interval: 300            # Interval (seconds) between consecutive battery charge alerts
-
-alert_server:                    # Server URL for sending alerts
-  url: "http://10.0.10.101:3001/api/push/LFqtU02CAK"   
-  retry_count: 3                 # Number of retry attempts for sending alerts
-  interval: 300                  # Minimum interval (seconds) between alert notifications
-
-check:
-  interval: 15                   # Time (seconds) between UPS data checks
+# the interval (in seconds) between each check of the ups data.
+check_interval: 15
