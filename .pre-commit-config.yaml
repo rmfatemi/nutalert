@@ -1,0 +1,57 @@
+exclude: '^docs/conf.py'
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: trailing-whitespace
+    exclude: .github/CODEOWNERS|docs/CODEOWNERS|.snyk|cortex.yaml
+  - id: check-ast
+  - id: check-json
+  - id: check-merge-conflict
+  - id: check-toml
+  - id: check-xml
+  - id: check-yaml
+  - id: debug-statements
+  - id: detect-aws-credentials
+    args: ['--allow-missing-credentials']
+  - id: detect-private-key
+  - id: end-of-file-fixer
+    exclude: .github/CODEOWNERS|docs/CODEOWNERS|.snyk
+  - id: requirements-txt-fixer
+  - id: mixed-line-ending
+    args: ['--fix=auto']
+
+- repo: https://github.com/psf/black
+  rev: 23.9.1
+  hooks:
+  - id: black
+
+- repo: https://github.com/asottile/blacken-docs
+  rev: 1.13.0
+  hooks:
+  - id: blacken-docs
+    additional_dependencies:
+    - black==23.9.1
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.5.1
+  hooks:
+  - id: mypy
+    additional_dependencies: [ types-setuptools, types-docutils, types-requests, types-PyYAML ]
+
+- repo: https://github.com/python-poetry/poetry
+  rev: 1.8.3
+  hooks:
+  - id: poetry-check
+
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.9.0.5
+  hooks:
+  - id: shellcheck
+
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.0.289
+  hooks:
+    - id: ruff
+      args: ["--fix"]
