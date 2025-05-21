@@ -14,25 +14,28 @@ nut_server:
 
 # configure notification methods below; at least one must be enabled.
 notifications:
-  # ntfy:
-  #   url: "http://your.ntfy.server.address"
-  #   topic: "nutalert"
-  #   tags: "ups"
-  #   priority: "5"
-  #   token: ""
-  #   username: ""
-  #   password: ""
-  # apprise:
-  #   url: "apprise://"
-  # webhook:
-  #   url: "http://your.webhook.address"
-  #   headers:
-  #     authorization: "your token"
-  #     x-custom-header: "password123"
+  ntfy:
+    enabled: false
+    url: "http://your.ntfy.server.address"
+    topic: "nutalert"
+    tags: "ups"
+    priority: "5"
+    token: ""
+    username: ""
+    password: ""
+  apprise:
+    enabled: false
+    url: "apprise://"
+  webhook:
+    enabled: false
+    url: "http://your.webhook.address"
+    headers:
+      authorization: "your token"
+      x-custom-header: "password123"
   tcp:
-    enabled: true               # (recommended with bitvoker: https://github.com/rmfatemi/bitvoker)
-    host: "10.0.10.101"         # tcp server ip to send notifications
-    port: 8083                  # tcp server port
+    enabled: true
+    host: "10.0.10.101"
+    port: 8083
 
 ###############################################################################
 # check interval and alert mode
@@ -52,28 +55,28 @@ alert_mode: "basic"
 basic_alerts:
   # battery charge alert
   battery_charge:
-    enabled: true               # set to false to disable this check
+    enabled: true
     min: 90                     # minimum acceptable battery charge (%)
     message: "battery charge below minimum threshold"
   # runtime alert - simple threshold check
   runtime:
-    enabled: true               # set to false to disable this check
+    enabled: true
     min: 15                     # minimum acceptable runtime in minutes
     message: "runtime below minimum threshold"
   # load alert - separate from runtime
   load:
-    enabled: true               # set to false to disable this check
+    enabled: true
     max: 50                     # maximum acceptable load percentage
     message: "ups load exceeds maximum threshold"
   # voltage alert
   input_voltage:
-    enabled: true               # set to false to disable this check
+    enabled: false
     min: 110.0                  # minimum acceptable input voltage (volts)
     max: 130.0                  # maximum acceptable input voltage (volts)
     message: "input voltage outside acceptable range"
   # status alert
   ups_status:
-    enabled: true               # set to false to disable this check
+    enabled: true
     acceptable: ["ol", "online"] # acceptable ups operational statuses
     message: "ups status not in acceptable list"
 

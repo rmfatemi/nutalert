@@ -20,7 +20,7 @@ def prepare_ups_env(nut_values):
         "actual_runtime_minutes": actual_runtime_minutes,
         "battery_voltage": battery_voltage,
         "input_voltage": input_voltage,
-        "ups_status": ups_status
+        "ups_status": ups_status,
     }
 
 
@@ -45,7 +45,7 @@ def check_runtime(basic_alerts, env):
         return "config error: runtime.min not specified"
 
     min_runtime = basic_alerts["runtime"]["min"]
-    
+
     if env["actual_runtime_minutes"] < min_runtime:
         if "message" not in basic_alerts["runtime"]:
             logger.warning("missing config: basic_alerts.runtime.message")
@@ -62,7 +62,7 @@ def check_load(basic_alerts, env):
         return "config error: load.max not specified"
 
     max_load = basic_alerts["load"]["max"]
-    
+
     if env["ups_load"] > max_load:
         if "message" not in basic_alerts["load"]:
             logger.warning("missing config: basic_alerts.load.message")
@@ -130,7 +130,7 @@ def check_basic_alerts(config, env):
         alert = check_runtime(basic_alerts, env)
         if alert:
             alerts_triggered.append(alert)
-            
+
     if "load" in basic_alerts and basic_alerts["load"].get("enabled"):
         alert = check_load(basic_alerts, env)
         if alert:
@@ -173,7 +173,13 @@ def check_formula_alert(config, env):
         if result:
             return True, alert_message
         else:
-            return False, f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load, {env['battery_charge']}% charge"
+            return (
+                False,
+                (
+                    f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load,"
+                    f" {env['battery_charge']}% charge"
+                ),
+            )
     except Exception as e:
         error_msg = f"error evaluating formula '{formula_expr}': {e}"
         logger.error(error_msg)
@@ -195,7 +201,13 @@ def should_alert(nut_values, config):
         if alerts_triggered:
             return True, "ups alert: " + "; ".join(alerts_triggered)
         else:
-            return False, f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load, {env['battery_charge']}% charge"
+            return (
+                False,
+                (
+                    f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load,"
+                    f" {env['battery_charge']}% charge"
+                ),
+            )
 
     elif alert_mode == "formula":
         return check_formula_alert(config, env)
