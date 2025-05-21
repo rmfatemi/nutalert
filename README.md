@@ -8,22 +8,22 @@
 **nutalert** is a flexible highly customizable and modular UPS monitoring system that connects to NUT (Network UPS Tools) servers, analyzes UPS status data, and sends alerts when specific conditions are met.
 
 ## Features
-- Connect to **NUT servers** to monitor UPS devices  
+- Connect to **NUT servers** to monitor UPS devices
 - **Configurable Alert Thresholds** for:
   - 🔋 Battery charge
   - ⏳ Runtime
   - ⚡ Input voltage
   - 📈 UPS Load
-  - 🔄 UPS status  
+  - 🔄 UPS status
 - **Two Alert Modes**:
   - 🔤 Basic (individual condition checks)
-  - 🧮 Formula (custom expressions)  
-- **Multiple Notification Methods**: Send notifications to over 100 services via:  
+  - 🧮 Formula (custom expressions)
+- **Multiple Notification Methods**: Send notifications to over 100 services via:
   - 📢 [ntfy](https://ntfy.sh/)
   - 🔔 [apprise](https://github.com/caronc/apprise) (e.g. Telegram, Discord, Slack, Amazon SNS, Gotify, etc.)
   - 🌎 webhooks (e.g. [discord](https://discord.com/developers/docs/resources/webhook))
   - 💻 tcp (e.g. [bitvoker](https://github.com/rmfatemi/bitvoker))
-- **Highly Modular & Maintainable Architecture**  
+- **Highly Modular & Maintainable Architecture**
 
 
 ## Setup
@@ -97,25 +97,28 @@ nut_server:
 
 # configure notification methods below; at least one must be enabled.
 notifications:
-  # ntfy:
-  #   url: "http://your.ntfy.server.address"
-  #   topic: "nutalert"
-  #   tags: "ups"
-  #   priority: "5"
-  #   token: ""
-  #   username: ""
-  #   password: ""
+  ntfy:
+    enabled: false
+    url: "http://your.ntfy.server.address"
+    topic: "nutalert"
+    tags: "ups"
+    priority: "5"
+    token: ""
+    username: ""
+    password: ""
   apprise:
+    enabled: false
     url: "apprise://"
-  # webhook:
-  #   url: "http://your.webhook.address"
-  #   headers:
-  #     authorization: "your token"
-  #     x-custom-header: "password123"
-  # tcp:
-  #  enabled: true               # (recommended with bitvoker: https://github.com/rmfatemi/bitvoker)
-  #  host: "10.0.10.101"         # tcp server ip to send notifications
-  #  port: 8083                  # tcp server port
+  webhook:
+    enabled: false
+    url: "http://your.webhook.address"
+    headers:
+      authorization: "your token"
+      x-custom-header: "password123"
+  tcp:
+    enabled: true
+    host: "10.0.10.101"
+    port: 8083
 
 ###############################################################################
 # check interval and alert mode
@@ -135,28 +138,28 @@ alert_mode: "basic"
 basic_alerts:
   # battery charge alert
   battery_charge:
-    enabled: true               # set to false to disable this check
+    enabled: true
     min: 90                     # minimum acceptable battery charge (%)
     message: "battery charge below minimum threshold"
   # runtime alert - simple threshold check
   runtime:
-    enabled: true               # set to false to disable this check
+    enabled: true
     min: 15                     # minimum acceptable runtime in minutes
     message: "runtime below minimum threshold"
   # load alert - separate from runtime
   load:
-    enabled: true               # set to false to disable this check
+    enabled: true
     max: 50                     # maximum acceptable load percentage
     message: "ups load exceeds maximum threshold"
   # voltage alert
   input_voltage:
-    enabled: true               # set to false to disable this check
+    enabled: false
     min: 110.0                  # minimum acceptable input voltage (volts)
     max: 130.0                  # maximum acceptable input voltage (volts)
     message: "input voltage outside acceptable range"
   # status alert
   ups_status:
-    enabled: true               # set to false to disable this check
+    enabled: true
     acceptable: ["ol", "online"] # acceptable ups operational statuses
     message: "ups status not in acceptable list"
 
