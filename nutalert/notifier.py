@@ -11,7 +11,7 @@ logger = setup_logger("notifier")
 
 
 class NutAlertNotifier:
-    def __init__(self, config, container_name: str = None):
+    def __init__(self, config, container_name: str | None = None):
         self.config = config
         self.container = container_name
 
@@ -47,7 +47,7 @@ class NutAlertNotifier:
             opts["authorization"] = f"Basic {encoded}"
         return opts
 
-    def notify_ntfy(self, title: str, message: str, file_path: str = None) -> bool:
+    def notify_ntfy(self, title: str, message: str, file_path: str | None = None) -> bool:
         options = self._assemble_ntfy_options()
         short_msg = ("this message had to be shortened: \n" if len(message) > 3900 else "") + message[:3900]
         hdrs = {
@@ -89,7 +89,7 @@ class NutAlertNotifier:
             logger.error("exception in ntfy notification: %s", exc)
         return False
 
-    def notify_apprise(self, title: str, message: str, file_path: str = None) -> bool:
+    def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> bool:
         ap_obj = apprise.Apprise()
         apprise_cfg = self.config["notifications"]["apprise"]
         ap_url = (
@@ -111,7 +111,12 @@ class NutAlertNotifier:
             return False
 
     def notify_webhook(
-        self, title: str, message: str, file_path: str = None, keywords: str = None, hostname: str = None
+        self,
+        title: str,
+        message: str,
+        file_path: str | None = None,
+        keywords: str | None = None,
+        hostname: str | None = None,
     ) -> bool:
         payload = {
             "container": self.container,
@@ -134,37 +139,47 @@ class NutAlertNotifier:
             logger.error("exception sending webhook: %s", exc)
         return False
 
-    def notify_tcp(self, title: str, message: str) -> None:
-        tcp_cfg = self.config["notifications"].get("tcp")
-        if not tcp_cfg or not tcp_cfg.get("enabled", False):
-            logger.error("tcp notification is not configured or disabled.")
-            return
+    def notify_tcp(self, title: str, message: str) -> bool:
+        tcp_cfg = self.config["notifications"]["tcp"]
         host = tcp_cfg.get("host")
         port = tcp_cfg.get("port")
-        if not host or not port:
-            logger.error("tcp notification configuration missing host or port.")
-            return
         try:
             with socket.create_connection((host, port), timeout=5) as sock:
                 content = f"{title}: {message}\n"
                 sock.sendall(content.encode("utf-8"))
             logger.info("tcp notification sent successfully")
+            return True
         except Exception as exc:
             logger.error("error sending tcp notification: %s", exc)
+            return False
 
     def send_all(
-        self, title: str, message: str, file_path: str = None, keywords: str = None, hostname: str = None
+        self,
+        title: str,
+        message: str,
+        file_path: str | None = None,
+        keywords: str | None = None,
+        hostname: str | None = None,
     ) -> None:
         notifications_cfg = self.config.get("notifications", {})
         if (
             "ntfy" in notifications_cfg
+            and notifications_cfg["ntfy"].get("enabled", False)
             and notifications_cfg["ntfy"].get("url")
             and notifications_cfg["ntfy"].get("topic")
         ):
             self.notify_ntfy(title, message, file_path)
-        if "apprise" in notifications_cfg and notifications_cfg["apprise"].get("url"):
+        if (
+            "apprise" in notifications_cfg
+            and notifications_cfg["apprise"].get("enabled", False)
+            and notifications_cfg["apprise"].get("url")
+        ):
             self.notify_apprise(title, message, file_path)
-        if "webhook" in notifications_cfg and notifications_cfg["webhook"].get("url"):
+        if (
+            "webhook" in notifications_cfg
+            and notifications_cfg["webhook"].get("enabled", False)
+            and notifications_cfg["webhook"].get("url")
+        ):
             self.notify_webhook(title, message, file_path, keywords, hostname)
         if "tcp" in notifications_cfg and notifications_cfg["tcp"].get("enabled", False):
             self.notify_tcp(title, message)

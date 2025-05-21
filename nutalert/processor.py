@@ -17,7 +17,11 @@ def process_nut_data():
         logger.error("missing required config: nut_server")
         return
 
-    if "host" not in config["nut_server"] or "port" not in config["nut_server"] or "timeout" not in config["nut_server"]:
+    if (
+        "host" not in config["nut_server"]
+        or "port" not in config["nut_server"]
+        or "timeout" not in config["nut_server"]
+    ):
         logger.error("missing required nut_server config: host, port, or timeout")
         return
 
