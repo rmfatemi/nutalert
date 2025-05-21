@@ -7,11 +7,13 @@ import urllib.parse
 from nutalert.utils import setup_logger
 
 
+logger = setup_logger("notifier")
+
+
 class NutAlertNotifier:
     def __init__(self, config, container_name: str = None):
         self.config = config
         self.container = container_name
-        self.logger = setup_logger("notifier")
 
     def _assemble_ntfy_options(self) -> dict:
         ntfy_cfg = self.config["notifications"]["ntfy"]
@@ -79,12 +81,12 @@ class NutAlertNotifier:
                     headers=hdrs,
                 )
             if resp.status_code == 200:
-                self.logger.info("ntfy notification sent successfully")
+                logger.info("ntfy notification sent successfully")
                 return True
             else:
-                self.logger.error("failed to send ntfy notification: %s", resp.text)
+                logger.error("failed to send ntfy notification: %s", resp.text)
         except Exception as exc:
-            self.logger.error("exception in ntfy notification: %s", exc)
+            logger.error("exception in ntfy notification: %s", exc)
         return False
 
     def notify_apprise(self, title: str, message: str, file_path: str = None) -> bool:
@@ -102,10 +104,10 @@ class NutAlertNotifier:
                 ap_obj.notify(title=title, body=short_body, attach=file_path)
             else:
                 ap_obj.notify(title=title, body=short_body)
-            self.logger.info("apprise notification sent successfully")
+            logger.info("apprise notification sent successfully")
             return True
         except Exception as exc:
-            self.logger.error("error sending apprise notification: %s", exc)
+            logger.error("error sending apprise notification: %s", exc)
             return False
 
     def notify_webhook(
@@ -124,31 +126,31 @@ class NutAlertNotifier:
         try:
             resp = requests.post(hook_url, json=payload, headers=hook_hdrs, timeout=10)
             if resp.status_code == 200:
-                self.logger.info("webhook notification sent successfully")
+                logger.info("webhook notification sent successfully")
                 return True
             else:
-                self.logger.error("failed to send webhook notification: %s", resp.text)
+                logger.error("failed to send webhook notification: %s", resp.text)
         except Exception as exc:
-            self.logger.error("exception sending webhook: %s", exc)
+            logger.error("exception sending webhook: %s", exc)
         return False
 
     def notify_tcp(self, title: str, message: str) -> None:
         tcp_cfg = self.config["notifications"].get("tcp")
         if not tcp_cfg or not tcp_cfg.get("enabled", False):
-            self.logger.error("tcp notification is not configured or disabled.")
+            logger.error("tcp notification is not configured or disabled.")
             return
         host = tcp_cfg.get("host")
         port = tcp_cfg.get("port")
         if not host or not port:
-            self.logger.error("tcp notification configuration missing host or port.")
+            logger.error("tcp notification configuration missing host or port.")
             return
         try:
             with socket.create_connection((host, port), timeout=5) as sock:
                 content = f"{title}: {message}\n"
                 sock.sendall(content.encode("utf-8"))
-            self.logger.info("tcp notification sent successfully")
+            logger.info("tcp notification sent successfully")
         except Exception as exc:
-            self.logger.error("error sending tcp notification: %s", exc)
+            logger.error("error sending tcp notification: %s", exc)
 
     def send_all(
         self, title: str, message: str, file_path: str = None, keywords: str = None, hostname: str = None
