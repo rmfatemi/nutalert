@@ -6,11 +6,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essen
 
 RUN pip install poetry
 
-COPY pyproject.toml poetry.lock* config.yaml README.md ./
+RUN mkdir -p /config
+
+COPY pyproject.toml poetry.lock* README.md ./
 COPY nutalert/ nutalert/
 
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
 
 EXPOSE 3493
 
-CMD ["python", "nutalert/processor.py"]
+ENV CONFIG_PATH=/config/config.yaml
+
+CMD ["python", "-m", "nutalert.processor"]

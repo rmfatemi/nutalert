@@ -25,14 +25,13 @@ docker-build: ## Build the nutalert Docker image.
 
 .PHONY: docker-run
 docker-run: ## Run the container named nutalert using the nutalert image.
-	docker volume create nutalert_data && docker run -p 3493:3493 -v nutalert_data:/app/data --name nutalert nutalert
+	docker run -p 3493:3493 -v $(shell pwd):/config --name nutalert nutalert
 
 .PHONY: docker
 docker: clean docker-build docker-run
 
 .PHONY: clean
 clean: ## Clean Docker containers, volumes, Python cache, build artifacts and temporary files.
-	@echo "cleaning docker resources..."
 	-docker rm -f nutalert 2>/dev/null || true
 	-docker volume rm nutalert_data 2>/dev/null || true
 	@echo "cleaning python cache files..."
