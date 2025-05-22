@@ -5,186 +5,96 @@
 
 # UPS Monitoring and Alert System
 
-**nutalert** is a flexible highly customizable and modular UPS monitoring system that connects to NUT (Network UPS Tools) servers, analyzes UPS status data, and sends alerts when specific conditions are met.
+**nutalert** is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data and sends alerts when specific conditions are met.
 
 ## Features
-- Connect to **NUT servers** to monitor UPS devices
-- **Configurable Alert Thresholds** for:
+- **Seemless connection** to NUT servers to monitor UPS devices
+- **Configurable Alerts** based-on:
   - 🔋 Battery charge
   - ⏳ Runtime
   - ⚡ Input voltage
   - 📈 UPS Load
   - 🔄 UPS status
-- **Two Alert Modes**:
+- **Dual Configuration Modes**:
   - 🔤 Basic (individual condition checks)
   - 🧮 Formula (custom expressions)
 - **Multiple Notification Methods**: Send notifications to over 100 services via:
-  - 📢 [ntfy](https://ntfy.sh/)
-  - 🔔 [apprise](https://github.com/caronc/apprise) (e.g. Telegram, Discord, Slack, Amazon SNS, Gotify, etc.)
-  - 🌎 webhooks (e.g. [discord](https://discord.com/developers/docs/resources/webhook))
-  - 💻 tcp (e.g. [bitvoker](https://github.com/rmfatemi/bitvoker))
-- **Highly Modular & Maintainable Architecture**
+  - 📢 [ntfy](https://ntfy.sh/) push notifications
+  - 🔔 [Apprise](https://github.com/caronc/apprise) (e.g. Telegram, Discord, Slack, Gotify, etc.)
+  - 🌎 Webhooks (e.g. [discord](https://discord.com/developers/docs/resources/webhook))
+  - 💻 TCP (e.g. [bitvoker](https://github.com/rmfatemi/bitvoker))
 
+## Setup Guide
 
-## Setup
-Before proceeding, make sure your NUT server is set up and running. To check if **nutalert** has the necessary access to retrieve data, run the following command:
+Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
 
-`/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> <nut-server-port (usually 3493)>`
+### Step 1: Verify NUT Server Connectivity
+If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
 
-This will return a list of available variables provided by your NUT server, confirming successful access.
+`/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493`
 
-This repository supports two ways of running **nutalert**. For a consistent and isolated environment, using Docker is recommended.
-### Docker
+A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
 
-Create a `docker-compose.yaml` file copy the following inside it:
+### Step 2: Prepare the Configuration
+1. Download & modify the configuration:
 
+    - Download the [configuration template](https://github.com/rmfatemi/nutalert/blob/master/config.yaml)
+    - Edit the template to set your alert thresholds, alert formula, notification preferences, and any sensor-specific parameters.
+
+2. Save your config file:
+
+   - Save your modified configuration as `config.yaml` in a dedicated directory (e.g., `/path/to/config_dir`).
+
+### Docker Deployment Scenarios
+
+#### Co-hosting nut-upds and nutalert
+If you wish to run your NUT server using Docker alongside nutalert, create a `docker-compose.yaml` file with the following content:
+
+```yaml
+services:
+  nut-upsd:
+    image: instantlinux/nut-upsd
+    container_name: nut
+    environment:
+      - TZ=America/New_York         # Modify if different
+      - API_PASSWORD={PASSWORD}     # API password, nutalert will not need this
+      - DRIVER=usbhid-ups           # Modify based on your UPS model
+    devices:
+      - /dev/bus/usb:/dev/bus/usb   # Your UPS device
+    ports:
+      - "3493:3493"                 # Modify if needed
+    restart: unless-stopped
+
+  nutalert:
+    image: ghcr.io/rmfatemi/nutalert:latest
+    container_name: nutalert    
+    depends_on:
+      - nut-upsd
+    volumes:
+      - /path/to/config_dir:/config # Set the correct config path
+    environment:
+      - NUT_PORT=3493               # Modify if needed
+    restart: unless-stopped
 ```
+#### Using an External NUT Server
+If your NUT server is hosted separately, use this streamlined `docker-compose.yaml` for deploying nutalert alone:
+
+````yaml
 services:
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
     container_name: nutalert
-    ports:
-      - "3493:3493"    # NUT server port
     volumes:
-      - /path/to/your/config:/config
+      - /path/to/config_dir:/config # Set the correct config path
+    ports:
+      - "3493:3493"                 # NUT server port
     restart: unless-stopped
-```
-Then start the service with:
+````
+Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
 ```
 docker-compose up -d
 ```
-### Standalone Installation
-#### Prerequisites
-
-- Python 3.11 or higher
-- [Poetry](https://python-poetry.org/docs/#installation) package manager
-- [GNU Make](https://www.gnu.org/software/make/) utility
-  -    `sudo apt-get install make` (Debian-based Linux), or `brew install make` (macOS)
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/rmfatemi/nutalert.git
-    cd nutalert
-    ```
-
-2. Install dependencies:
-    ```bash
-    make install
-    ```
-
-3. Run the application:
-    ```bash
-    poetry run nutalert
-    ```
-
-## Configuration
-
-Create a configuration file at `config.yaml` with the following structure and customize it based on your needs and environment:
-
-```yaml
-###############################################################################
-# nut server configuration
-###############################################################################
-
-# these settings define the connection parameters to contact the nut (ups) server
-nut_server:
-  host: "10.0.10.101"            # ip address of the nut server
-  port: 3493                     # port used for connection
-  timeout: 3                     # socket connection timeout in seconds
-
-###############################################################################
-# notifications configuration
-###############################################################################
-
-# configure notification methods below; at least one must be enabled.
-notifications:
-  ntfy:
-    enabled: false
-    url: "http://your.ntfy.server.address"
-    topic: "nutalert"
-    tags: "ups"
-    priority: "5"
-    token: ""
-    username: ""
-    password: ""
-  apprise:
-    enabled: false
-    url: "apprise://"
-  webhook:
-    enabled: false
-    url: "http://your.webhook.address"
-    headers:
-      authorization: "your token"
-      x-custom-header: "password123"
-  tcp:
-    enabled: true
-    host: "10.0.10.101"
-    port: 8083
-
-###############################################################################
-# check interval and alert mode
-###############################################################################
-
-# how often to check the ups data (in seconds)
-check_interval: 15
-
-# choose alert mode: "basic" or "formula"
-alert_mode: "basic"
-
-###############################################################################
-# basic alert confuguration - simple threshold-based alerts
-###############################################################################
-
-# if ANY enabled alert condition fails, an alert will be triggered (using OR logic)
-basic_alerts:
-  # battery charge alert
-  battery_charge:
-    enabled: true
-    min: 90                     # minimum acceptable battery charge (%)
-    message: "battery charge below minimum threshold"
-  # runtime alert - simple threshold check
-  runtime:
-    enabled: true
-    min: 15                     # minimum acceptable runtime in minutes
-    message: "runtime below minimum threshold"
-  # load alert - separate from runtime
-  load:
-    enabled: true
-    max: 50                     # maximum acceptable load percentage
-    message: "ups load exceeds maximum threshold"
-  # voltage alert
-  input_voltage:
-    enabled: false
-    min: 110.0                  # minimum acceptable input voltage (volts)
-    max: 130.0                  # maximum acceptable input voltage (volts)
-    message: "input voltage outside acceptable range"
-  # status alert
-  ups_status:
-    enabled: true
-    acceptable: ["ol", "online"] # acceptable ups operational statuses
-    message: "ups status not in acceptable list"
-
-###############################################################################
-# advanced alert configuration - forumula-based alerts
-###############################################################################
-
-# formula mode: create a custom formula using ups data
-# available variables for your formula:
-#   ups_load - current ups load percentage
-#   battery_charge - current battery charge percentage
-#   actual_runtime_minutes - current battery runtime in minutes
-#   battery_voltage - current battery voltage
-#   input_voltage - current input voltage
-#   ups_status - current ups status string (lowercase)
-
-# your formula should return True to trigger an alert
-# examples:
-# - simple condition check: "battery_charge < 90 or ups_status != 'ol'"
-# - load-based runtime: "actual_runtime_minutes < (60 if ups_load <= 15 else (30 if ups_load >= 50 else 60 - (ups_load * 0.6)))"
-# - complex calculation: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (actual_runtime_minutes / 60) < 0.5"
-formula_alert:
-  expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
-  message: "ups alert: custom formula conditions not met"
-```
+You can monitor the container's log to see the relevant information and to troubleshoot potential errors using `docker-compose logs -f nutalert`
 
 ## 📄 License
 
