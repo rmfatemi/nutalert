@@ -25,7 +25,7 @@ notifications:
     password: ""
   apprise:
     enabled: false
-    url: "apprise://"
+    url: "tgram://123456789:ABCDEF1234567890/ChatID"
   webhook:
     enabled: false
     url: "http://your.webhook.address"
@@ -33,7 +33,7 @@ notifications:
       authorization: "your token"
       x-custom-header: "password123"
   tcp:
-    enabled: true
+    enabled: false
     host: "10.0.10.101"
     port: 8083
 
