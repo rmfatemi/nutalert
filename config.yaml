@@ -78,6 +78,7 @@ basic_alerts:
   ups_status:
     enabled: true
     acceptable: ["ol", "online"] # acceptable ups operational statuses
+#    alert_when_status_changed: true # optional, enable If you only want to send an alert when the UPS status has changed
     message: "ups status not in acceptable list"
 
 ###############################################################################

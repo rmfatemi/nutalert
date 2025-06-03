@@ -109,8 +109,31 @@ def check_ups_status(basic_alerts, env):
             message = "ups status not in acceptable list"
         else:
             message = basic_alerts["ups_status"]["message"]
+        if _should_skip_due_to_unchanged_status(basic_alerts, env["ups_status"]):
+            return None
         return f"{message} ({env['ups_status']})"
     return None
+
+
+previous_ups_status: str = ""
+
+
+def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> bool:
+    global previous_ups_status
+    if not _is_enabled_alert_when_status_changed(basic_alerts):
+        return False
+
+    logger.info(f"'alert_when_status_changed' is true")
+    if current_status == previous_ups_status:
+        logger.info(f"ups status unchanged: {current_status} (no alert)")
+        return True
+
+    previous_ups_status = current_status
+    return False
+
+
+def _is_enabled_alert_when_status_changed(basic_alerts) -> bool:
+    return basic_alerts["ups_status"].get('alert_when_status_changed', False)
 
 
 def check_basic_alerts(config, env):
