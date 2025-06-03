@@ -1,11 +1,7 @@
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/1c35f7da-0c58-4842-9b67-3f233edb2b13" width="100">
-  <img src="https://github.com/user-attachments/assets/ca070ec4-b918-48f5-a201-e9ec2141cc65" width="353">
-</p>
-
 # UPS Monitoring and Alert System
 
-**nutalert** is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data and sends alerts when specific conditions are met.
+<p align="left"> <img align="left" src="https://github.com/user-attachments/assets/1c35f7da-0c58-4842-9b67-3f233edb2b13" width="75"> <strong>nutalert</strong> is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data, sends alerts when specific conditions are met, and supports multiple notification destinations. </p>
+<br>
 
 ## Features
 - **Seemless connection** to NUT servers to monitor UPS devices
