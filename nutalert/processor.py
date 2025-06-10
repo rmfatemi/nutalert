@@ -1,61 +1,59 @@
-import time
-
+# ==============================================================================
+# File: nutalert/processor.py
+# ==============================================================================
 from nutalert.fetcher import fetch_nut_data
-from nutalert.notifier import NutAlertNotifier
-from nutalert.utils import setup_logger, load_config
 from nutalert.parser import parse_nut_data
 from nutalert.alert import should_alert
+from nutalert.utils import setup_logger, load_config, get_recent_logs
 
+# Setup one logger for this file. It will inherit the handlers from the root setup.
+logger = setup_logger(__name__)
 
-logger = setup_logger("processor")
-
-
-def process_nut_data():
+def get_ups_data_and_alerts():
+    """
+    The core function that fetches NUT data, checks for alerts, and returns
+    all necessary information for the GUI.
+    """
     config = load_config()
 
-    if "nut_server" not in config:
-        logger.error("missing required config: nut_server")
-        return
+    # Default return values in case of an early exit
+    default_return = {}, "Configuration error", True, get_recent_logs()
 
-    if (
-        "host" not in config["nut_server"]
-        or "port" not in config["nut_server"]
-        or "timeout" not in config["nut_server"]
-    ):
-        logger.error("missing required nut_server config: host, port, or timeout")
-        return
+    if not config or "nut_server" not in config:
+        logger.error("'nut_server' section is missing in the configuration.")
+        return default_return
 
+    nut_server_config = config["nut_server"]
+    required_keys = ["host", "port", "timeout"]
+    if not all(key in nut_server_config for key in required_keys):
+        logger.error(f"nut_server config is missing one of required keys: {required_keys}")
+        return default_return
+
+    # Fetch raw data from the NUT server
     raw_data = fetch_nut_data(
-        host=config["nut_server"]["host"],
-        port=config["nut_server"]["port"],
-        timeout=config["nut_server"]["timeout"],
+        host=nut_server_config["host"],
+        port=nut_server_config["port"],
+        timeout=nut_server_config["timeout"],
     )
+
     if not raw_data:
-        logger.error("no data received from nut server")
-        return
+        logger.error("No data received from NUT server. Check connection and server status.")
+        # Return empty data but with the relevant error message and logs
+        return {}, "Error: No data from NUT server", True, get_recent_logs()
 
+    # Parse the data and check for alerts
     nut_values = parse_nut_data(raw_data)
-    alert, message = should_alert(nut_values, config)
+    is_alerting, alert_message = should_alert(nut_values, config)
 
-    if alert:
-        logger.warning("alert condition met! sending alert...")
-        logger.warning(message)
-        title = "ups alert"
-        notifier = NutAlertNotifier(config)
-        notifier.send_all(title=title, message=message)
+    # Log the outcome
+    if is_alerting:
+        # Avoid logging the full message if it's a config error, as it's not a real-time status
+        if "config error" not in alert_message.lower():
+            logger.warning(f"Alert Triggered: {alert_message}")
     else:
-        logger.info(message)
+        # Log the "OK" status for visibility
+        ok_status = alert_message.split(":", 1)[-1].strip() if ":" in alert_message else alert_message
+        logger.info(f"Status OK: {ok_status}")
 
-
-if __name__ == "__main__":
-    config = load_config()
-    if "check_interval" not in config:
-        logger.error("missing required config: check_interval")
-        check_interval = 15
-        logger.warning(f"using default check interval: {check_interval} seconds")
-    else:
-        check_interval = config["check_interval"]
-
-    while True:
-        process_nut_data()
-        time.sleep(check_interval)
+    # Return everything the frontend needs
+    return nut_values, alert_message, is_alerting, get_recent_logs()
