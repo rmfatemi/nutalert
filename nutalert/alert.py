@@ -123,7 +123,7 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> b
     if not _is_enabled_alert_when_status_changed(basic_alerts):
         return False
 
-    logger.info(f"'alert_when_status_changed' is true")
+    logger.info("'alert_when_status_changed' is true")
     if current_status == previous_ups_status:
         logger.info(f"ups status unchanged: {current_status} (no alert)")
         return True
@@ -133,7 +133,7 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> b
 
 
 def _is_enabled_alert_when_status_changed(basic_alerts) -> bool:
-    return basic_alerts["ups_status"].get('alert_when_status_changed', False)
+    return basic_alerts["ups_status"].get("alert_when_status_changed", False)
 
 
 def check_basic_alerts(config, env):
