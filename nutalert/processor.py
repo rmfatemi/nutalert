@@ -9,6 +9,7 @@ from nutalert.utils import setup_logger, load_config, get_recent_logs
 # Setup one logger for this file. It will inherit the handlers from the root setup.
 logger = setup_logger(__name__)
 
+
 def get_ups_data_and_alerts():
     """
     The core function that fetches NUT data, checks for alerts, and returns
