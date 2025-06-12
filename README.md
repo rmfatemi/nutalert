@@ -63,7 +63,7 @@ services:
 
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
-    container_name: nutalert    
+    container_name: nutalert
     depends_on:
       - nut-upsd
     volumes:

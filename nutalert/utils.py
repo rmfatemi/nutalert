@@ -1,26 +1,24 @@
-# ==============================================================================
-# File: nutalert/utils.py
-# (This version correctly finds the config file in the parent directory)
-# ==============================================================================
 import os
 import sys
 import yaml
 import logging
+
 from collections import deque
 
-LOG_BUFFER = deque(maxlen=100)
+
+LOG_BUFFER: deque[str] = deque(maxlen=100)
 
 
 class LogBufferIO:
-    def write(self, message):
+    def write(self, message: str) -> None:
         if message.strip():
             LOG_BUFFER.append(message.strip())
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
-def setup_logger(name=__name__, level=logging.INFO):
+def setup_logger(name: str = __name__, level: int = logging.INFO) -> logging.Logger:
     formatter = logging.Formatter(
         "%(asctime)s - [%(levelname)s] - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -38,26 +36,17 @@ def setup_logger(name=__name__, level=logging.INFO):
     return logger
 
 
-def get_recent_logs():
+def get_recent_logs() -> str:
     return "\n".join(LOG_BUFFER)
 
 
-def get_config_path():
-    """
-    CHANGED: This function is now robust. It finds the config.yaml file
-    in the project's root directory (parent of the script's directory).
-    """
-    # Get the directory where this utils.py script is located.
+def get_config_path() -> str:
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Get the parent directory (the project root).
     project_root = os.path.dirname(script_dir)
-
-    # Construct the path to config.yaml in the project root.
     return os.path.join(project_root, "config.yaml")
 
 
-def load_config():
+def load_config() -> dict:
     path = get_config_path()
     if not os.path.exists(path):
         logging.getLogger(__name__).warning(f"Config file not found at '{path}'. Creating a default one.")
@@ -71,13 +60,13 @@ def load_config():
         return default_config
     try:
         with open(path, "r") as f:
-            return yaml.safe_load(f)
+            return yaml.safe_load(f) or {}
     except yaml.YAMLError as e:
         logging.getLogger(__name__).error(f"Error parsing config file '{path}': {e}")
         return {}
 
 
-def save_config(config_data):
+def save_config(config_data: dict) -> str:
     path = get_config_path()
     try:
         with open(path, "w") as f:
