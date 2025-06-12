@@ -294,10 +294,11 @@ app.on_startup(lambda: asyncio.create_task(update_loop()))
 
 
 async def update_loop():
+    await asyncio.sleep(1)
     while True:
         try:
-            await asyncio.sleep(state.config.get("check_interval", 15))
             await state.update_data_and_ui()
+            await asyncio.sleep(state.config.get("check_interval", 15))
         except asyncio.CancelledError:
             break
         except Exception as e:
