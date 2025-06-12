@@ -1,12 +1,59 @@
-import asyncio
 import yaml
-from typing import Dict, Any, Optional
+import asyncio
 
-import plotly.graph_objects as go
+from typing import Dict, Any, Optional, List
+
 from nicegui import ui, run, app
+import plotly.graph_objects as go
+from pydantic import BaseModel, Field, ValidationError
 
-from nutalert.processor import get_ups_data_and_alerts
+from nutalert.utils import setup_logger
 from nutalert.utils import load_config, save_config
+from nutalert.processor import get_ups_data_and_alerts
+
+
+logger = setup_logger(__name__)
+
+
+class MinMaxAlert(BaseModel):
+    enabled: bool = False
+    min: Optional[int] = None
+    max: Optional[int] = None
+    message: Optional[str] = None
+
+
+class StatusAlert(BaseModel):
+    enabled: bool = False
+    acceptable: List[str] = []
+    message: Optional[str] = None
+    alert_when_status_changed: bool = False
+
+
+class BasicAlerts(BaseModel):
+    battery_charge: Optional[MinMaxAlert] = None
+    runtime: Optional[MinMaxAlert] = None
+    load: Optional[MinMaxAlert] = None
+    input_voltage: Optional[MinMaxAlert] = None
+    ups_status: Optional[StatusAlert] = None
+
+
+class NutServerConfig(BaseModel):
+    host: str
+    port: int = Field(gt=0, le=65535, description="Port must be between 1 and 65535")
+    timeout: int = Field(gt=0, description="Timeout must be a positive number")
+
+
+class FormulaAlert(BaseModel):
+    expression: str
+    message: str
+
+
+class AppConfig(BaseModel):
+    nut_server: NutServerConfig
+    check_interval: int = Field(ge=5, description="check_interval must be 5 seconds or greater")
+    alert_mode: str
+    basic_alerts: Optional[BasicAlerts] = None
+    formula_alert: Optional[FormulaAlert] = None
 
 
 def create_dial_gauge(value: float, title: str, metric_type: str, range_min: float, range_max: float) -> go.Figure:
@@ -91,7 +138,7 @@ class AppState:
             self.update_ui_components()
 
         except Exception as e:
-            print(f"Error in data retrieval/update loop: {e}")
+            logger.error(f"error in data retrieval/update loop: {e}")
             self.alert_message = f"Error: {e}"
             self.is_alerting = True
             self.update_ui_components()
@@ -100,12 +147,11 @@ class AppState:
         if "status_dot" in self.ui_elements:
             dot = self.ui_elements["status_dot"]
             status = self.nut_values.get("ups.status", "unknown").lower()
+            color = "crimson"
             if "ol" in status:
                 color = "mediumseagreen"
             elif "ob" in status:
                 color = "darkorange"
-            else:
-                color = "crimson"
             dot.style(f"background-color: {color}")
             dot.update()
 
@@ -164,8 +210,10 @@ state = AppState()
 
 
 def build_header():
-    with ui.header(elevated=True).classes("justify-between items-center px-4 py-2 bg-gray-800 text-white"):
-        ui.label("⚡ NUT Alert Dashboard").classes("text-2xl font-bold")
+    with ui.header(elevated=True).classes("justify-between items-center px-4 py-2 bg-gray-200 text-gray-800"):
+        with ui.row().classes("items-center"):
+            ui.image("/assets/logo.png").classes("w-10 h-9 mr-0")
+            ui.label("nutalert").classes("text-2xl font-bold")
         with ui.row().classes("items-center"):
             state.ui_elements["status_label"] = ui.label("Initializing...")
             state.ui_elements["status_dot"] = ui.element("div").classes(
@@ -198,14 +246,17 @@ def build_config_editor():
 
         def save_and_apply():
             try:
-                new_config = yaml.safe_load(state.config_text)
-                save_status = save_config(new_config)
-                state.config = new_config
+                new_config_data = yaml.safe_load(state.config_text)
+                AppConfig.model_validate(new_config_data)
+                save_status = save_config(new_config_data)
+                state.config = new_config_data
                 ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
+            except ValidationError as e:
+                ui.notify(f"Configuration Error: {e}", color="negative", multi_line=True, wrap=True)
             except yaml.YAMLError as e:
-                ui.notify(f"YAML Parsing Error: {e}", color="negative")
+                ui.notify(f"YAML Syntax Error: {e}", color="negative", multi_line=True, wrap=True)
             except Exception as e:
-                ui.notify(f"Failed to apply configuration: {e}", color="negative")
+                ui.notify(f"An unexpected error occurred: {e}", color="negative")
 
         ui.button("Save Configuration", on_click=save_and_apply, icon="save").classes("mt-4")
 
@@ -218,7 +269,7 @@ def build_log_viewer():
         )
 
 
-@ui.page("/", title="NUT Alert Dashboard")
+@ui.page("/", title="nutalert")
 async def dashboard_page():
     build_header()
     with ui.element("div").classes("w-full p-4 space-y-4"):
@@ -250,9 +301,11 @@ async def update_loop():
         except asyncio.CancelledError:
             break
         except Exception as e:
-            print(f"CRITICAL ERROR in background update loop: {e}")
+            logger.error(f"critical error in background update loop: {e}")
             await asyncio.sleep(30)
 
 
+app.add_static_files("/assets", "assets")
+
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(title="NUT Alert Dashboard")
+    ui.run(title="nutalert")
