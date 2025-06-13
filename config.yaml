@@ -14,28 +14,9 @@ nut_server:
 
 # configure notification methods below; at least one must be enabled.
 notifications:
-  ntfy:
-    enabled: false
-    url: "http://your.ntfy.server.address"
-    topic: "nutalert"
-    tags: "ups"
-    priority: "5"
-    token: ""
-    username: ""
-    password: ""
   apprise:
-    enabled: false
+    enabled: true
     url: "tgram://123456789:ABCDEF1234567890/ChatID"
-  webhook:
-    enabled: false
-    url: "http://your.webhook.address"
-    headers:
-      authorization: "your token"
-      x-custom-header: "password123"
-  tcp:
-    enabled: false
-    host: "10.0.10.101"
-    port: 8083
 
 ###############################################################################
 # check interval and alert mode
