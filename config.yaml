@@ -12,11 +12,20 @@ nut_server:
 # notifications configuration
 ###############################################################################
 
-# configure notification methods below; at least one must be enabled.
+# configure notification methods below.
 notifications:
-  apprise:
-    enabled: true
-    url: "tgram://123456789:ABCDEF1234567890/ChatID"
+  enabled: true  # master switch for all notifications, set to false to disable all
+
+  # apprise is used for all notifications
+  # for more information on how to construct apprise urls for over 100 services,
+  # see: https://github.com/caronc/apprise
+  urls:
+    - url: "tgram://123456789:ABCDEF1234567890/ChatID"
+      enabled: false
+    - url: "discord://your-discord-webhook-id/your-discord-webhook-token"
+      enabled: false
+    - url: "slack://your-slack-token-a/your-slack-token-b/your-slack-token-c"
+      enabled: false
 
 ###############################################################################
 # check interval and alert mode
