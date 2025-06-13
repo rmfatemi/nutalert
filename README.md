@@ -85,20 +85,8 @@ services:
     restart: unless-stopped
 ```
 #### Using an External NUT Server
-If your NUT server is hosted separately, use this streamlined `docker-compose.yaml` for deploying nutalert alone:
+If your NUT server is hosted separately you can remove `nut-upsd` from template above and add its port to `nutalert`'s ports section.
 
-````yaml
-services:
-  nutalert:
-    image: ghcr.io/rmfatemi/nutalert:latest
-    container_name: nutalert
-    volumes:
-      - /path/to/config_dir:/config # set the correct config path
-    ports:
-      - 3493:3493                   # nut server port, modify if needed
-      - 8087:8087                   # web ui port, modify if needed
-    restart: unless-stopped
-````
 Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
 ```
 docker-compose up -d
