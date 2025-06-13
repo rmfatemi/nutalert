@@ -37,33 +37,33 @@ basic_alerts:
   # battery charge alert
   battery_charge:
     enabled: true
-    min: 90                     # minimum acceptable battery charge (%)
+    min: 90                              # minimum acceptable battery charge (%)
     message: "battery charge below minimum threshold"
   # runtime alert - simple threshold check
   runtime:
     enabled: true
-    min: 15                     # minimum acceptable runtime in minutes
+    min: 15                              # minimum acceptable runtime in minutes
     message: "runtime below minimum threshold"
   # load alert - separate from runtime
   load:
     enabled: true
-    max: 50                     # maximum acceptable load percentage
+    max: 50                              # maximum acceptable load percentage
     message: "ups load exceeds maximum threshold"
   # voltage alert
   input_voltage:
     enabled: false
-    min: 110.0                  # minimum acceptable input voltage (volts)
-    max: 130.0                  # maximum acceptable input voltage (volts)
+    min: 110.0                           # minimum acceptable input voltage (volts)
+    max: 130.0                           # maximum acceptable input voltage (volts)
     message: "input voltage outside acceptable range"
   # status alert
   ups_status:
     enabled: true
-    acceptable: ["ol", "online"] # acceptable ups operational statuses
-#    alert_when_status_changed: true # optional, enable If you only want to send an alert when the UPS status has changed
+    acceptable: ["ol", "online"]         # acceptable ups operational statuses
+    alert_when_status_changed: false     # enable if you only want to send an alert when the ups status has changed
     message: "ups status not in acceptable list"
 
 ###############################################################################
-# advanced alert configuration - forumula-based alerts
+# advanced alert configuration - formula-based alerts
 ###############################################################################
 
 # formula mode: create a custom formula using ups data
@@ -82,4 +82,4 @@ basic_alerts:
 # - complex calculation: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (actual_runtime_minutes / 60) < 0.5"
 formula_alert:
   expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
-  message: "ups alert: custom formula conditions not met"
+  message: "alert! load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"

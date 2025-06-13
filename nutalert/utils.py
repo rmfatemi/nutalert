@@ -41,12 +41,12 @@ def get_recent_logs() -> str:
 
 
 def get_config_path() -> str:
-    if 'CONFIG_PATH' in os.environ:
-        return os.environ['CONFIG_PATH']
+    if "CONFIG_PATH" in os.environ:
+        return os.environ["CONFIG_PATH"]
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    return os.path.join(project_root, 'config.yaml')
+    return os.path.join(project_root, "config.yaml")
 
 
 def load_config() -> dict:
@@ -54,10 +54,10 @@ def load_config() -> dict:
     if not os.path.exists(path):
         logging.getLogger(__name__).warning(f"Config file not found at '{path}'. Creating a default one.")
         default_config = {
-            'nut_server': {'host': '127.0.0.1', 'port': 3493, 'timeout': 5},
-            'check_interval': 15,
-            'alert_mode': 'basic',
-            'basic_alerts': {'battery_charge': {'enabled': False, 'min': 20}}
+            "nut_server": {"host": "127.0.0.1", "port": 3493, "timeout": 5},
+            "check_interval": 15,
+            "alert_mode": "basic",
+            "basic_alerts": {"battery_charge": {"enabled": False, "min": 20}},
         }
         save_config(default_config)
         return default_config

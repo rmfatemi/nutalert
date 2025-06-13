@@ -189,7 +189,12 @@ def check_formula_alert(config, env):
         logger.warning("missing config: formula_alert.message")
         alert_message = "ups alert: formula conditions not met"
     else:
-        alert_message = formula_alert["message"]
+        try:
+            alert_message = formula_alert["message"].format(**env)
+        except KeyError as e:
+            error_msg = f"invalid variable in formula message: {e}"
+            logger.error(error_msg)
+            return True, f"ups alert: {error_msg}"
 
     try:
         result = eval(formula_expr, {"__builtins__": {}}, env)
@@ -227,7 +232,7 @@ def should_alert(nut_values, config):
             return (
                 False,
                 (
-                    f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load,"
+                    f"ups ok: {env['actual_runtime_minutes']:.1f} min runtime, {env['ups_load']}% load,"
                     f" {env['battery_charge']}% charge"
                 ),
             )
