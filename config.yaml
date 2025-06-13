@@ -14,8 +14,8 @@ nut_server:
 
 # configure notification methods below.
 notifications:
-  enabled: true  # master switch for all notifications, set to false to disable all
-
+  enabled: true                  # set to false to disable all notifications
+  cooldown: 60                   # time to wait (s) between sending new alerts
   # apprise is used for all notifications
   # for more information on how to construct apprise urls for over 100 services,
   # see: https://github.com/caronc/apprise
