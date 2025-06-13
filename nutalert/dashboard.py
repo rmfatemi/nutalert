@@ -7,8 +7,9 @@ from nicegui import ui, run, app
 import plotly.graph_objects as go
 from pydantic import BaseModel, Field, ValidationError
 
-from nutalert.utils import setup_logger, load_config, save_config
+from nutalert.utils import setup_logger, load_config, save_config, get_config_path
 from nutalert.processor import get_ups_data_and_alerts
+from nutalert.notifier import NutAlertNotifier
 
 logger = setup_logger(__name__)
 
@@ -28,6 +29,7 @@ COLOR_THEME = {
     "error_text": "#EF5350",
     "log_bg": "#212121",
     "codemirror_theme": "darcula",
+    "button_color": "#FF8F00",  # Dark Orange
 }
 
 
@@ -296,27 +298,55 @@ def build_raw_data_display():
 
 def build_config_editor():
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
-        ui.label("Configuration").classes("text-lg font-semibold")
+        with ui.row().classes("w-full justify-between items-center"):
+            ui.label("Configuration").classes("text-lg font-semibold")
+            ui.link(
+                "Need help with configuration? Check out the template.",
+                "https://github.com/rmfatemi/nutalert/blob/master/config.yaml",
+                new_tab=True,
+            ).classes("text-sm text-gray-500 hover:text-gray-400")
 
         config_editor = ui.codemirror(
             value=state.config_text, language="yaml", on_change=lambda e: setattr(state, "config_text", e.value)
         ).props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}").classes("w-full border").style("height: 54vh")
 
-        def save_and_apply():
-            try:
-                new_config_data = yaml.safe_load(state.config_text)
-                AppConfig.model_validate(new_config_data)
-                save_status = save_config(new_config_data)
-                state.config = new_config_data
-                ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
-            except ValidationError as e:
-                ui.notify(f"Configuration Error: {e}", color="negative", multi_line=True, wrap=True)
-            except yaml.YAMLError as e:
-                ui.notify(f"YAML Syntax Error: {e}", color="negative", multi_line=True, wrap=True)
-            except Exception as e:
-                ui.notify(f"An unexpected error occurred: {e}", color="negative")
+        def send_test_notification():
+            notifier = NutAlertNotifier(state.config)
+            success = notifier.notify_apprise("Test Notification", "This is a test notification from nutalert.")
+            if success:
+                ui.notify("Test notification sent successfully!", color="positive")
+            else:
+                ui.notify("Failed to send test notification.", color="negative")
 
-        ui.button("Save Configuration", on_click=save_and_apply, icon="save").classes("mt-4")
+        with ui.row().classes("w-full justify-start items-center mt-4 gap-x-4"):
+
+            def save_and_apply():
+                try:
+                    new_config_data = yaml.safe_load(state.config_text)
+                    AppConfig.model_validate(new_config_data)
+                    save_status = save_config(new_config_data)
+                    state.config = new_config_data
+                    ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
+                except ValidationError as e:
+                    ui.notify(f"Configuration Error: {e}", color="negative", multi_line=True, wrap=True)
+                except yaml.YAMLError as e:
+                    ui.notify(f"YAML Syntax Error: {e}", color="negative", multi_line=True, wrap=True)
+                except Exception as e:
+                    ui.notify(f"An unexpected error occurred: {e}", color="negative")
+
+            ui.button("Save Configuration", on_click=save_and_apply, icon="save", color=COLOR_THEME["button_color"])
+            ui.button(
+                "Test Notification",
+                on_click=send_test_notification,
+                icon="notification_important",
+                color=COLOR_THEME["button_color"],
+            )
+            ui.button(
+                "Download Config",
+                on_click=lambda: ui.download(get_config_path()),
+                icon="download",
+                color=COLOR_THEME["button_color"],
+            )
 
 
 def build_log_viewer():
@@ -333,7 +363,8 @@ async def dashboard_page():
     ui.dark_mode(True)
     build_header()
     with ui.element("div").classes(
-            f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
+            f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"
+    ):
         build_alert_banner()
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
@@ -353,11 +384,7 @@ async def dashboard_page():
                 build_log_viewer()
 
     await state.update_data_and_ui()
-    ui.timer(
-        interval=state.config.get("check_interval", 15),
-        callback=state.update_data_and_ui,
-        active=True
-    )
+    ui.timer(interval=state.config.get("check_interval", 15), callback=state.update_data_and_ui, active=True)
 
 
 app.add_static_files("/assets", "assets")
