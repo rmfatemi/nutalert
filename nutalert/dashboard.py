@@ -7,13 +7,10 @@ from nicegui import ui, run, app
 import plotly.graph_objects as go
 from pydantic import BaseModel, Field, ValidationError
 
-from nutalert.utils import setup_logger
-from nutalert.utils import load_config, save_config
+from nutalert.utils import setup_logger, load_config, save_config
 from nutalert.processor import get_ups_data_and_alerts
 
-
 logger = setup_logger(__name__)
-
 
 COLOR_THEME = {
     "background": "#121212",
@@ -261,10 +258,10 @@ state = AppState()
 
 def build_header():
     with ui.header(elevated=True).classes(
-        f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"
+            f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"
     ):
         with ui.row().classes("items-center"):
-            ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0")
+            ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0 no-darkreader")
             ui.label("nutalert").classes("text-2xl font-bold")
         with ui.row().classes("items-center"):
             state.ui_elements["status_label"] = ui.label("Initializing...")
@@ -300,7 +297,8 @@ def build_raw_data_display():
 def build_config_editor():
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Configuration").classes("text-lg font-semibold")
-        ui.codemirror(
+
+        config_editor = ui.codemirror(
             value=state.config_text, language="yaml", on_change=lambda e: setattr(state, "config_text", e.value)
         ).props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}").classes("w-full border").style("height: 54vh")
 
@@ -308,7 +306,7 @@ def build_config_editor():
             try:
                 new_config_data = yaml.safe_load(state.config_text)
                 AppConfig.model_validate(new_config_data)
-                save_status = save_config(state.config_text)
+                save_status = save_config(new_config_data)
                 state.config = new_config_data
                 ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
             except ValidationError as e:
@@ -325,7 +323,8 @@ def build_log_viewer():
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Live Logs").classes("text-lg font-semibold")
         state.ui_elements["log_view"] = (
-            ui.log(max_lines=1000).classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm").style("height: 60vh")
+            ui.log(max_lines=1000).classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm").style(
+                "height: 60vh")
         )
 
 
@@ -333,7 +332,8 @@ def build_log_viewer():
 async def dashboard_page():
     ui.dark_mode(True)
     build_header()
-    with ui.element("div").classes(f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
+    with ui.element("div").classes(
+            f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
         build_alert_banner()
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
@@ -353,22 +353,11 @@ async def dashboard_page():
                 build_log_viewer()
 
     await state.update_data_and_ui()
-
-
-app.on_startup(lambda: asyncio.create_task(update_loop()))
-
-
-async def update_loop():
-    await asyncio.sleep(1)
-    while True:
-        try:
-            await state.update_data_and_ui()
-            await asyncio.sleep(state.config.get("check_interval", 15))
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logger.error(f"critical error in background update loop: {e}")
-            await asyncio.sleep(30)
+    ui.timer(
+        interval=state.config.get("check_interval", 15),
+        callback=state.update_data_and_ui,
+        active=True
+    )
 
 
 app.add_static_files("/assets", "assets")
