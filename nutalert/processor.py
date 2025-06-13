@@ -1,13 +1,20 @@
-from nutalert.fetcher import fetch_nut_data
-from nutalert.parser import parse_nut_data
+import time
+
 from nutalert.alert import should_alert
+from nutalert.parser import parse_nut_data
+from nutalert.fetcher import fetch_nut_data
+from nutalert.notifier import NutAlertNotifier
 from nutalert.utils import setup_logger, load_config, get_recent_logs
 
 
 logger = setup_logger(__name__)
 
 
+last_notification_time: float = 0.0
+
+
 def get_ups_data_and_alerts():
+    global last_notification_time
     config = load_config()
 
     default_return = {}, "configuration error", True, get_recent_logs()
@@ -38,6 +45,20 @@ def get_ups_data_and_alerts():
     if is_alerting:
         if "config error" not in alert_message.lower():
             logger.warning(f"alert triggered: {alert_message}")
+            notifications_config = config.get("notifications", {})
+            if notifications_config.get("enabled", False):
+                cooldown = notifications_config.get("cooldown", 60)
+                current_time = time.time()
+                if current_time - last_notification_time > cooldown:
+                    logger.info(f"cooldown period ({cooldown}s) has passed. sending notification.")
+                    notifier = NutAlertNotifier(config)
+                    notifier.send_all("UPS Alert", alert_message)
+                    last_notification_time = current_time
+                else:
+                    logger.info(
+                        f"cooldown period ({cooldown}s) has not passed. skipping notification. "
+                        f"last notification sent {current_time - last_notification_time:.0f}s ago"
+                    )
     else:
         ok_status = alert_message.split(":", 1)[-1].strip() if ":" in alert_message else alert_message
         logger.info(f"status ok: {ok_status}")
