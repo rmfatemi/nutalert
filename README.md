@@ -75,25 +75,24 @@ services:
     image: instantlinux/nut-upsd
     container_name: nut
     environment:
-      - TZ=America/New_York         # modify if different
-      - API_PASSWORD={PASSWORD}     # api password, nutalert will not need this
+      - TZ=America/New_York         # modify if different\
+      - API_PASSWORD={PASSWORD}     # required for nut, not nutalert
       - DRIVER=usbhid-ups           # modify based on your ups model
     devices:
       - /dev/bus/usb:/dev/bus/usb   # your ups device
     ports:
-      - "3493:3493"                 # modify if needed
-      - "8087:8087"                 # web ui port
+      - 3493:3493                   # nut port, modify if needed
     restart: unless-stopped
 
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
-    container_name: nutalert
+    container_name: nutalert    
     depends_on:
       - nut-upsd
+    ports:
+      - 8087:8087                   # web ui port, modify if needed
     volumes:
       - /path/to/config_dir:/config # set the correct config path
-    environment:
-      - NUT_PORT=3493               # modify if needed
     restart: unless-stopped
 ```
 #### Using an External NUT Server
