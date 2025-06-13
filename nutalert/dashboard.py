@@ -383,7 +383,7 @@ def build_log_viewer(ui_elements: Dict[str, Any]):
         )
 
 
-@ui.page("/", title="nutalert", favicon="/assets/logo.png")
+@ui.page("/", title="nutalert")
 async def dashboard_page():
     ui.dark_mode(True)
 
@@ -418,4 +418,4 @@ app.on_startup(state.poll_ups_data)
 app.add_static_files("/assets", "assets")
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(title="nutalert", port=8087)
+    ui.run(title="nutalert", port=8087, favicon="assets/logo.ico")
