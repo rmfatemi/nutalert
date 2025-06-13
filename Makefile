@@ -25,7 +25,7 @@ docker-build: ## build the nutalert docker image
 
 .PHONY: docker-run
 docker-run: ## run the container named nutalert using the nutalert image
-	docker run -p 3493:3493 -p 8089:8080 -v $(shell pwd):/config --name nutalert nutalert
+	docker run -p 3493:3493 -p 8087:8087 -v $(shell pwd):/config --name nutalert nutalert
 
 .PHONY: docker
 docker: clean docker-build docker-run
