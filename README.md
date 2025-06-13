@@ -1,6 +1,6 @@
 # UPS Monitoring and Alert System
 
-<p align="left"> <img align="left" src="https://github.com/rmfatemi/nutalert/blob/master/assets/logo.png" width="75"> <strong>nutalert</strong> is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data, sends alerts when specific conditions are met, and supports multiple notification destinations. </p>
+<p align="left"> <img align="left" src="https://github.com/rmfatemi/nutalert/blob/master/assets/logo.png" width="75"> <strong>nutalert</strong> is a self-hosted UPS monitoring system for NUT (Network UPS Tools) servers. It features a modern web interface to visualize live data and manage settings, sends customizable alerts when specific conditions are met, and supports dozens of notification destinations </p>
 <br>
 
 ## ✅ Features
@@ -47,26 +47,15 @@ Access the web interface at `http://{server_ip}:8087` to:
 
 Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
 
-### Step 1: Verify NUT Server Connectivity
+### Verify NUT Server Connectivity
 If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
 
 `/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493`
 
 A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
 
-### Step 2: Prepare the Configuration
-1. Download & modify the configuration:
-
-    - Download the [configuration template](https://github.com/rmfatemi/nutalert/blob/master/config.yaml)
-    - Edit the template to set your alert thresholds, alert formula, notification preferences, and any sensor-specific parameters.
-
-2. Save your config file:
-
-   - Save your modified configuration as `config.yaml` in a dedicated directory (e.g., `/path/to/config_dir`).
-
 ### Docker Deployment Scenarios
 
-#### Co-hosting nut-upds and nutalert
 If you wish to run your NUT server using Docker alongside nutalert, create a `docker-compose.yaml` file with the following content:
 
 ```yaml
@@ -106,8 +95,8 @@ services:
     volumes:
       - /path/to/config_dir:/config # set the correct config path
     ports:
-      - "3493:3493"                 # nut server port
-      - "8087:8087"                 # web ui port
+      - 3493:3493                   # nut server port, modify if needed
+      - 8087:8087                   # web ui port, modify if needed
     restart: unless-stopped
 ````
 Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
