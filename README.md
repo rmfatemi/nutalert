@@ -3,9 +3,9 @@
 <p align="left"> <img align="left" src="https://github.com/rmfatemi/nutalert/blob/master/assets/logo.png" width="75"> <strong>nutalert</strong> is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data, sends alerts when specific conditions are met, and supports multiple notification destinations. </p>
 <br>
 
-## Features
-- ✅ **Seemless connection** to NUT servers to monitor UPS devices
-- ✅ **Multi-platform support**: **nutalert** supports notifications for
+## ✅ Features
+- **Seemless connection** to NUT servers to monitor UPS devices
+- **Multi-platform support**: **nutalert** supports notifications for
   <p>
   <span>
     <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/telegram.svg" width="20">
@@ -22,18 +22,28 @@
    and many more Thanks to <a href="https://github.com/caronc/apprise">Apprise</a> integration.
 </p>
 
-- ✅ **Modern Web UI** monitor UPS device data and adjust settings
-- ✅ **Configurable Alerts** based-on:
+- **Modern Web UI** monitor UPS device data and adjust settings
+- **Configurable Alerts** based-on:
   - ⏳ Runtime
   - 🔋 Battery charge
   - ⚡ Input voltage
   - 📈 UPS Load
   - 🔄 UPS status
-- ✅ **Dual Configuration Modes**:
+- **Dual Configuration Modes**:
   - 🔤 Basic (individual condition checks)
   - 🧮 Formula (custom expressions)
 
-## Setup Guide
+## 📺 Web Interface
+Access the web interface at `http://{server_ip}:8087` to:
+- Configure notification destinations
+- Adjust rules and UPS limits
+- View system logs
+
+<img src="https://github.com/user-attachments/assets/4c29770a-ba7c-4e27-9509-ad04527dc962">
+<img src="https://github.com/user-attachments/assets/46dbe4fd-f743-41d1-bcb5-790d84e05301">
+<img src="https://github.com/user-attachments/assets/14f90607-d7d5-42ac-9d91-3864e7dfec87">
+
+## 🏗️ Setup Guide
 
 Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
 
@@ -105,16 +115,7 @@ Once your `docker-compose.yaml` and `config.yaml` file are ready, start the serv
 ```
 docker-compose up -d
 ```
-## Web Interface
-Access the web interface at `http://{server_ip}:8087` to:
-- Configure notification destinations
-- Adjust rules and UPS limits
-- View system logs
 
-<img src="https://github.com/user-attachments/assets/4c29770a-ba7c-4e27-9509-ad04527dc962">
-<img src="https://github.com/user-attachments/assets/46dbe4fd-f743-41d1-bcb5-790d84e05301">
-<img src="https://github.com/user-attachments/assets/14f90607-d7d5-42ac-9d91-3864e7dfec87">
-
-## 📄 License
+## 🔑 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/rmfatemi/nutalert/blob/master/LICENSE) file for details.
