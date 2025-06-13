@@ -36,7 +36,7 @@ VOLUME /config
 USER appuser
 
 EXPOSE 3493
-EXPOSE 8080
+EXPOSE 8087
 
 ENV CONFIG_PATH=/config/config.yaml
 

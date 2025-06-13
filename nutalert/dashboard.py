@@ -30,7 +30,7 @@ COLOR_THEME = {
     "error_text": "#EF5350",
     "log_bg": "#212121",
     "codemirror_theme": "darcula",
-    "button_color": "#FF8F00",  # Dark Orange
+    "button_color": "#FF8F00",
 }
 
 
@@ -423,4 +423,4 @@ async def dashboard_page():
 app.add_static_files("/assets", "assets")
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(title="nutalert")
+    ui.run(title="nutalert", port=8087)
