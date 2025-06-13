@@ -1,26 +1,49 @@
 # UPS Monitoring and Alert System
 
-<p align="left"> <img align="left" src="https://github.com/user-attachments/assets/1c35f7da-0c58-4842-9b67-3f233edb2b13" width="75"> <strong>nutalert</strong> is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data, sends alerts when specific conditions are met, and supports multiple notification destinations. </p>
+<p align="left"> <img align="left" src="https://github.com/rmfatemi/nutalert/blob/master/assets/logo.png" width="75"> <strong>nutalert</strong> is a customizable UPS monitoring system designed to connect with NUT (Network UPS Tools) servers. It analyzes UPS status data, sends alerts when specific conditions are met, and supports multiple notification destinations. </p>
 <br>
 
-## Features
+## ✅ Features
 - **Seemless connection** to NUT servers to monitor UPS devices
+- **Multi-platform support**: **nutalert** supports notifications for
+  <p>
+  <span>
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/telegram.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/slack.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/microsoft-teams.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/gmail.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/discord.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/whatsapp.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/gotify.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/ntfy.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/pushover.svg" width="20">
+    <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/home-assistant.svg" width="20">
+  </span>
+   and many more Thanks to <a href="https://github.com/caronc/apprise">Apprise</a> integration.
+</p>
+
+- **Modern Web UI** monitor UPS device data and adjust settings
 - **Configurable Alerts** based-on:
-  - 🔋 Battery charge
   - ⏳ Runtime
+  - 🔋 Battery charge
   - ⚡ Input voltage
   - 📈 UPS Load
   - 🔄 UPS status
 - **Dual Configuration Modes**:
   - 🔤 Basic (individual condition checks)
   - 🧮 Formula (custom expressions)
-- **Multiple Notification Methods**: Send notifications to over 100 services via:
-  - 📢 [ntfy](https://ntfy.sh/) push notifications
-  - 🔔 [Apprise](https://github.com/caronc/apprise) (e.g. Telegram, Discord, Slack, Gotify, etc.)
-  - 🌎 Webhooks (e.g. [discord](https://discord.com/developers/docs/resources/webhook))
-  - 💻 TCP (e.g. [bitvoker](https://github.com/rmfatemi/bitvoker))
 
-## Setup Guide
+## 📺 Web Interface
+Access the web interface at `http://{server_ip}:8087` to:
+- Configure notification destinations
+- Adjust rules and UPS limits
+- View system logs
+
+<img src="https://github.com/user-attachments/assets/3bfa467c-63d5-4742-8e1e-003b7b947ecd">
+<img src="https://github.com/user-attachments/assets/33c5195a-dc40-4a43-a332-abda6b132346">
+<img src="https://github.com/user-attachments/assets/2c0b461d-1909-4d1b-a1fb-796640c9da4b">
+
+## 🏗️ Setup Guide
 
 Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
 
@@ -52,24 +75,25 @@ services:
     image: instantlinux/nut-upsd
     container_name: nut
     environment:
-      - TZ=America/New_York         # Modify if different
-      - API_PASSWORD={PASSWORD}     # API password, nutalert will not need this
-      - DRIVER=usbhid-ups           # Modify based on your UPS model
+      - TZ=America/New_York         # modify if different
+      - API_PASSWORD={PASSWORD}     # api password, nutalert will not need this
+      - DRIVER=usbhid-ups           # modify based on your ups model
     devices:
-      - /dev/bus/usb:/dev/bus/usb   # Your UPS device
+      - /dev/bus/usb:/dev/bus/usb   # your ups device
     ports:
-      - "3493:3493"                 # Modify if needed
+      - "3493:3493"                 # modify if needed
+      - "8087:8087"                 # web ui port
     restart: unless-stopped
 
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
-    container_name: nutalert    
+    container_name: nutalert
     depends_on:
       - nut-upsd
     volumes:
-      - /path/to/config_dir:/config # Set the correct config path
+      - /path/to/config_dir:/config # set the correct config path
     environment:
-      - NUT_PORT=3493               # Modify if needed
+      - NUT_PORT=3493               # modify if needed
     restart: unless-stopped
 ```
 #### Using an External NUT Server
@@ -81,17 +105,17 @@ services:
     image: ghcr.io/rmfatemi/nutalert:latest
     container_name: nutalert
     volumes:
-      - /path/to/config_dir:/config # Set the correct config path
+      - /path/to/config_dir:/config # set the correct config path
     ports:
-      - "3493:3493"                 # NUT server port
+      - "3493:3493"                 # nut server port
+      - "8087:8087"                 # web ui port
     restart: unless-stopped
 ````
 Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
 ```
 docker-compose up -d
 ```
-You can monitor the container's log to see the relevant information and to troubleshoot potential errors using `docker-compose logs -f nutalert`
 
-## 📄 License
+## 🔑 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/rmfatemi/nutalert/blob/master/LICENSE) file for details.

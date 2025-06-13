@@ -1,7 +1,7 @@
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("alert")
+logger = setup_logger(__name__)
 
 
 def prepare_ups_env(nut_values):
@@ -123,7 +123,7 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> b
     if not _is_enabled_alert_when_status_changed(basic_alerts):
         return False
 
-    logger.info(f"'alert_when_status_changed' is true")
+    logger.info("'alert_when_status_changed' is true")
     if current_status == previous_ups_status:
         logger.info(f"ups status unchanged: {current_status} (no alert)")
         return True
@@ -133,7 +133,7 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> b
 
 
 def _is_enabled_alert_when_status_changed(basic_alerts) -> bool:
-    return basic_alerts["ups_status"].get('alert_when_status_changed', False)
+    return basic_alerts["ups_status"].get("alert_when_status_changed", False)
 
 
 def check_basic_alerts(config, env):
@@ -189,7 +189,12 @@ def check_formula_alert(config, env):
         logger.warning("missing config: formula_alert.message")
         alert_message = "ups alert: formula conditions not met"
     else:
-        alert_message = formula_alert["message"]
+        try:
+            alert_message = formula_alert["message"].format(**env)
+        except KeyError as e:
+            error_msg = f"invalid variable in formula message: {e}"
+            logger.error(error_msg)
+            return True, f"ups alert: {error_msg}"
 
     try:
         result = eval(formula_expr, {"__builtins__": {}}, env)
@@ -227,7 +232,7 @@ def should_alert(nut_values, config):
             return (
                 False,
                 (
-                    f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load,"
+                    f"ups ok: {env['actual_runtime_minutes']:.1f} min runtime, {env['ups_load']}% load,"
                     f" {env['battery_charge']}% charge"
                 ),
             )
