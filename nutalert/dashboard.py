@@ -15,6 +15,26 @@ from nutalert.processor import get_ups_data_and_alerts
 logger = setup_logger(__name__)
 
 
+# Color constants for dark mode theme
+COLOR_THEME = {
+    "background": "#121212",
+    "primary": "#1E88E5",
+    "secondary": "#263238",
+    "text": "#E0E0E0",
+    "card": "#1E1E1E",
+    "success": "#66BB6A",
+    "warning": "#FFA726",
+    "error": "#EF5350",
+    "gauge_background": "rgba(0,0,0,0)",
+    "success_bg": "rgba(102, 187, 106, 0.2)",
+    "error_bg": "rgba(239, 83, 80, 0.2)",
+    "success_text": "#66BB6A",
+    "error_text": "#EF5350",
+    "log_bg": "#212121",
+    "codemirror_theme": "dracula",
+}
+
+
 class MinMaxAlert(BaseModel):
     enabled: bool = False
     min: Optional[int] = None
@@ -57,44 +77,54 @@ class AppConfig(BaseModel):
 
 
 def create_dial_gauge(value: float, title: str, metric_type: str, range_min: float, range_max: float) -> go.Figure:
-    bar_color = "#1565C0"
+    bar_color = COLOR_THEME["primary"]
     if metric_type == "load":
         steps = [
-            {"range": [0, 70], "color": "#4CAF50"},
-            {"range": [70, 90], "color": "#FFC107"},
-            {"range": [90, 100], "color": "#F44336"},
+            {"range": [0, 70], "color": COLOR_THEME["success"]},
+            {"range": [70, 90], "color": COLOR_THEME["warning"]},
+            {"range": [90, 100], "color": COLOR_THEME["error"]},
         ]
-        bar_color = "#B71C1C" if value > 90 else "#FBC02D" if value > 70 else "#2E7D32"
+        bar_color = (
+            COLOR_THEME["error"] if value > 90 else COLOR_THEME["warning"] if value > 70 else COLOR_THEME["success"]
+        )
     elif metric_type == "charge":
         steps = [
-            {"range": [0, 20], "color": "#F44336"},
-            {"range": [20, 50], "color": "#FFC107"},
-            {"range": [50, 100], "color": "#4CAF50"},
+            {"range": [0, 20], "color": COLOR_THEME["error"]},
+            {"range": [20, 50], "color": COLOR_THEME["warning"]},
+            {"range": [50, 100], "color": COLOR_THEME["success"]},
         ]
-        bar_color = "#B71C1C" if value < 20 else "#FBC02D" if value < 50 else "#2E7D32"
+        bar_color = (
+            COLOR_THEME["error"] if value < 20 else COLOR_THEME["warning"] if value < 50 else COLOR_THEME["success"]
+        )
     elif metric_type == "runtime":
         value_mins = value / 60.0
         range_max_mins = max(30, value_mins * 1.2)
         steps = [
-            {"range": [0, 5], "color": "#F44336"},
-            {"range": [5, 15], "color": "#FFC107"},
-            {"range": [15, range_max_mins], "color": "#4CAF50"},
+            {"range": [0, 5], "color": COLOR_THEME["error"]},
+            {"range": [5, 15], "color": COLOR_THEME["warning"]},
+            {"range": [15, range_max_mins], "color": COLOR_THEME["success"]},
         ]
-        bar_color = "#B71C1C" if value_mins < 5 else "#FBC02D" if value_mins < 15 else "#2E7D32"
+        bar_color = (
+            COLOR_THEME["error"]
+            if value_mins < 5
+            else COLOR_THEME["warning"] if value_mins < 15 else COLOR_THEME["success"]
+        )
         value, range_min, range_max = value_mins, 0, range_max_mins
     elif metric_type == "voltage":
         safe_low, safe_high, warn_low, warn_high = (210, 245, 200, 255) if value > 180 else (110, 128, 105, 130)
         steps = [
-            {"range": [range_min, warn_low], "color": "#F44336"},
-            {"range": [warn_low, safe_low], "color": "#FFC107"},
-            {"range": [safe_low, safe_high], "color": "#4CAF50"},
-            {"range": [safe_high, warn_high], "color": "#FFC107"},
-            {"range": [warn_high, range_max], "color": "#F44336"},
+            {"range": [range_min, warn_low], "color": COLOR_THEME["error"]},
+            {"range": [warn_low, safe_low], "color": COLOR_THEME["warning"]},
+            {"range": [safe_low, safe_high], "color": COLOR_THEME["success"]},
+            {"range": [safe_high, warn_high], "color": COLOR_THEME["warning"]},
+            {"range": [warn_high, range_max], "color": COLOR_THEME["error"]},
         ]
         bar_color = (
-            "#2E7D32"
+            COLOR_THEME["success"]
             if safe_low <= value <= safe_high
-            else "#FBC02D" if warn_low <= value < safe_low or safe_high < value <= warn_high else "#B71C1C"
+            else COLOR_THEME["warning"]
+            if warn_low <= value < safe_low or safe_high < value <= warn_high
+            else COLOR_THEME["error"]
         )
 
     fig = go.Figure(
@@ -106,7 +136,11 @@ def create_dial_gauge(value: float, title: str, metric_type: str, range_min: flo
         )
     )
     fig.update_layout(
-        height=200, margin=dict(l=30, r=30, t=50, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
+        height=200,
+        margin=dict(l=30, r=30, t=50, b=20),
+        paper_bgcolor=COLOR_THEME["gauge_background"],
+        plot_bgcolor=COLOR_THEME["gauge_background"],
+        font={"color": COLOR_THEME["text"]},
     )
     return fig
 
@@ -147,11 +181,11 @@ class AppState:
         if "status_dot" in self.ui_elements:
             dot = self.ui_elements["status_dot"]
             status = self.nut_values.get("ups.status", "unknown").lower()
-            color = "crimson"
+            color = COLOR_THEME["error"]
             if "ol" in status:
-                color = "mediumseagreen"
+                color = COLOR_THEME["success"]
             elif "ob" in status:
-                color = "darkorange"
+                color = COLOR_THEME["warning"]
             dot.style(f"background-color: {color}")
             dot.update()
 
@@ -164,10 +198,16 @@ class AppState:
             alert_card = self.ui_elements["alert_card"]
             alert_icon = self.ui_elements["alert_icon"]
             if self.is_alerting:
-                alert_card.classes(remove="bg-green-100 text-green-800", add="bg-red-100 text-red-800")
+                alert_card.classes(
+                    remove=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
+                    add=f"bg-[{COLOR_THEME['error_bg']}] text-[{COLOR_THEME['error_text']}]",
+                )
                 alert_icon.props("name=priority_high")
             else:
-                alert_card.classes(remove="bg-red-100 text-red-800", add="bg-green-100 text-green-800")
+                alert_card.classes(
+                    remove=f"bg-[{COLOR_THEME['error_bg']}] text-[{COLOR_THEME['error_text']}]",
+                    add=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
+                )
                 alert_icon.props("name=check_circle")
             self.last_alert_state = self.is_alerting
 
@@ -199,6 +239,17 @@ class AppState:
             plot.figure = create_dial_gauge(voltage, "Input Voltage (V)", "voltage", 0, 260 if voltage > 180 else 150)
             plot.update()
 
+        if "raw_data_grid" in self.ui_elements:
+            grid = self.ui_elements["raw_data_grid"]
+            grid.clear()
+            with grid:
+                if self.nut_values:
+                    sorted_items = sorted(self.nut_values.items())
+                    for key, value in sorted_items:
+                        with ui.row().classes("w-full items-center justify-between"):
+                            ui.label(f"{key}:").classes("font-mono text-sm font-bold")
+                            ui.label(str(value)).classes("font-mono text-sm")
+
         if "log_view" in self.ui_elements:
             log_element = self.ui_elements["log_view"]
             log_element.clear()
@@ -210,7 +261,9 @@ state = AppState()
 
 
 def build_header():
-    with ui.header(elevated=True).classes("justify-between items-center px-4 py-2 bg-gray-200 text-gray-800"):
+    with ui.header(elevated=True).classes(
+        f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['secondary']}] text-[{COLOR_THEME['text']}]"
+    ):
         with ui.row().classes("items-center"):
             ui.image("/assets/logo.png").classes("w-10 h-9 mr-0")
             ui.label("nutalert").classes("text-2xl font-bold")
@@ -222,7 +275,7 @@ def build_header():
 
 
 def build_alert_banner():
-    with ui.card().classes("w-full p-3 transition-all") as card:
+    with ui.card().classes(f"w-full p-3 transition-all bg-[{COLOR_THEME['card']}]") as card:
         state.ui_elements["alert_card"] = card
         with ui.row().classes("items-center no-wrap"):
             state.ui_elements["alert_icon"] = ui.icon("check_circle")
@@ -237,16 +290,24 @@ def build_dashboard_gauges():
         state.ui_elements["voltage_plot"] = ui.plotly(create_dial_gauge(0.0, "Input Voltage (V)", "voltage", 0, 150))
 
 
+def build_raw_data_display():
+    with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
+        ui.label("Raw UPS Data").classes("text-lg font-semibold")
+        state.ui_elements["raw_data_grid"] = ui.grid().classes(
+            "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4"
+        )
+
+
 def build_config_editor():
-    with ui.card().classes("w-full"):
+    with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Configuration").classes("text-lg font-semibold")
         ui.codemirror(
             value=state.config_text, language="yaml", on_change=lambda e: setattr(state, "config_text", e.value)
-        ).props("line-numbers").classes("w-full border").style("height: 60vh")
+        ).props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}").classes("w-full border").style("height: 60vh")
 
         def save_and_apply():
             try:
-                new_config_data = yaml.safe_load(state.config_text)
+                new_config_data = yaml.safe_.load(state.config_text)
                 AppConfig.model_validate(new_config_data)
                 save_status = save_config(new_config_data)
                 state.config = new_config_data
@@ -262,30 +323,35 @@ def build_config_editor():
 
 
 def build_log_viewer():
-    with ui.card().classes("w-full"):
+    with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Live Logs").classes("text-lg font-semibold")
         state.ui_elements["log_view"] = (
-            ui.log(max_lines=1000).classes("w-full bg-gray-100 font-mono text-sm").style("height: 40vh")
+            ui.log(max_lines=1000).classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm").style("height: 40vh")
         )
 
 
 @ui.page("/", title="nutalert")
 async def dashboard_page():
+    ui.dark_mode(True)
     build_header()
-    with ui.element("div").classes("w-full p-4 space-y-4"):
+    with ui.element("div").classes(f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
         build_alert_banner()
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
             ui.tab("Configuration")
+            ui.tab("Logs")
 
         with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
             with ui.tab_panel("Dashboard"):
                 with ui.column().classes("w-full gap-y-4"):
                     build_dashboard_gauges()
-                    build_log_viewer()
+                    build_raw_data_display()
 
             with ui.tab_panel("Configuration"):
                 build_config_editor()
+
+            with ui.tab_panel("Logs"):
+                build_log_viewer()
 
     await state.update_data_and_ui()
 
