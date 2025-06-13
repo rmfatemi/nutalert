@@ -41,7 +41,7 @@ class NutAlertNotifier:
                         ap_obj.add(url)
 
         if not ap_obj.servers:
-            logger.error("no enabled and valid apprise urls could be added.")
+            logger.error("no enabled and valid apprise urls found")
             return False
 
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
