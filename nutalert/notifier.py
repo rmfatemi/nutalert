@@ -1,13 +1,9 @@
-import base64
 import apprise
-import requests
-import socket
-import urllib.parse
 
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("notifier")
+logger = setup_logger(__name__)
 
 
 class NutAlertNotifier:
@@ -15,89 +11,39 @@ class NutAlertNotifier:
         self.config = config
         self.container = container_name
 
-    def _assemble_ntfy_options(self) -> dict:
-        ntfy_cfg = self.config["notifications"]["ntfy"]
-        opts = {
-            "url": ntfy_cfg["url"],
-            "topic": ntfy_cfg["topic"],
-            "tags": ntfy_cfg["tags"],
-            "priority": ntfy_cfg["priority"],
-        }
-        if "containers" in self.config and self.container in self.config["containers"]:
-            cconfig = self.config["containers"][self.container]
-            opts["topic"] = cconfig.get("ntfy_topic", opts["topic"])
-            opts["tags"] = cconfig.get("ntfy_tags", opts["tags"])
-            opts["priority"] = cconfig.get("ntfy_priority", opts["priority"])
-        if ntfy_cfg.get("token"):
-            token_value = (
-                ntfy_cfg["token"].get_secret_value()
-                if hasattr(ntfy_cfg["token"], "get_secret_value")
-                else ntfy_cfg["token"]
-            )
-            opts["authorization"] = f"Bearer {token_value}"
-        elif ntfy_cfg.get("username") and ntfy_cfg.get("password"):
-            username = ntfy_cfg["username"]
-            password = (
-                ntfy_cfg["password"].get_secret_value()
-                if hasattr(ntfy_cfg["password"], "get_secret_value")
-                else ntfy_cfg["password"]
-            )
-            creds = f"{username}:{password}"
-            encoded = base64.b64encode(creds.encode("utf-8")).decode("utf-8")
-            opts["authorization"] = f"Basic {encoded}"
-        return opts
-
-    def notify_ntfy(self, title: str, message: str, file_path: str | None = None) -> bool:
-        options = self._assemble_ntfy_options()
-        short_msg = ("this message had to be shortened: \n" if len(message) > 3900 else "") + message[:3900]
-        hdrs = {
-            "Title": title,
-            "Tags": str(options.get("tags")),
-            "Icon": "https://raw.githubusercontent.com/clemcer/loggifly/main/images/icon.png",
-            "Priority": str(options.get("priority")),
-        }
-        if options.get("authorization"):
-            hdrs["Authorization"] = options["authorization"]
-        try:
-            if file_path:
-                hdrs["Filename"] = file_path.split("/")[-1]
-                with open(file_path, "rb") as fp:
-                    if len(short_msg) < 199:
-                        resp = requests.post(
-                            f"{options['url']}/{options['topic']}?message={urllib.parse.quote(short_msg)}",
-                            data=fp,
-                            headers=hdrs,
-                        )
-                    else:
-                        resp = requests.post(
-                            f"{options['url']}/{options['topic']}",
-                            data=fp,
-                            headers=hdrs,
-                        )
-            else:
-                resp = requests.post(
-                    f"{options['url']}/{options['topic']}",
-                    data=short_msg,
-                    headers=hdrs,
-                )
-            if resp.status_code == 200:
-                logger.info("ntfy notification sent successfully")
-                return True
-            else:
-                logger.error("failed to send ntfy notification: %s", resp.text)
-        except Exception as exc:
-            logger.error("exception in ntfy notification: %s", exc)
-        return False
-
     def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> bool:
         ap_obj = apprise.Apprise()
-        apprise_cfg = self.config["notifications"]["apprise"]
-        ap_url = (
-            apprise_cfg["url"].get_secret_value()
-            if hasattr(apprise_cfg["url"], "get_secret_value")
-            else apprise_cfg["url"]
-        )
-        ap_obj.add(ap_url)
+        notifications_cfg = self.config.get("notifications", {})
+        urls_config = []
+
+        if "apprise" in notifications_cfg:
+            logger.warning("using legacy 'apprise' key in config. please update to the new format.")
+            apprise_cfg = notifications_cfg.get("apprise", {})
+            urls_config = apprise_cfg.get("urls", [])
+            if "url" in apprise_cfg and isinstance(apprise_cfg["url"], str):
+                urls_config.append(apprise_cfg["url"])
+        else:
+            urls_config = notifications_cfg.get("urls", [])
+
+        if not urls_config:
+            logger.error("no apprise urls found in configuration.")
+            return False
+
+        if all(isinstance(item, str) for item in urls_config):
+            for url in urls_config:
+                if url:
+                    ap_obj.add(url)
+        elif all(isinstance(item, dict) for item in urls_config):
+            for item in urls_config:
+                if item.get("enabled", True):
+                    url = item.get("url")
+                    if url:
+                        ap_obj.add(url)
+
+        if not ap_obj.servers:
+            logger.error("no enabled and valid apprise urls found")
+            return False
+
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
         try:
             if file_path:
@@ -110,76 +56,17 @@ class NutAlertNotifier:
             logger.error("error sending apprise notification: %s", exc)
             return False
 
-    def notify_webhook(
-        self,
-        title: str,
-        message: str,
-        file_path: str | None = None,
-        keywords: str | None = None,
-        hostname: str | None = None,
-    ) -> bool:
-        payload = {
-            "container": self.container,
-            "keywords": keywords,
-            "title": title,
-            "message": message,
-            "host": hostname,
-        }
-        webhook_cfg = self.config["notifications"]["webhook"]
-        hook_url = webhook_cfg["url"]
-        hook_hdrs = webhook_cfg["headers"]
-        try:
-            resp = requests.post(hook_url, json=payload, headers=hook_hdrs, timeout=10)
-            if resp.status_code == 200:
-                logger.info("webhook notification sent successfully")
-                return True
-            else:
-                logger.error("failed to send webhook notification: %s", resp.text)
-        except Exception as exc:
-            logger.error("exception sending webhook: %s", exc)
-        return False
-
-    def notify_tcp(self, title: str, message: str) -> bool:
-        tcp_cfg = self.config["notifications"]["tcp"]
-        host = tcp_cfg.get("host")
-        port = tcp_cfg.get("port")
-        try:
-            with socket.create_connection((host, port), timeout=5) as sock:
-                content = f"{title}: {message}\n"
-                sock.sendall(content.encode("utf-8"))
-            logger.info("tcp notification sent successfully")
-            return True
-        except Exception as exc:
-            logger.error("error sending tcp notification: %s", exc)
-            return False
-
-    def send_all(
-        self,
-        title: str,
-        message: str,
-        file_path: str | None = None,
-        keywords: str | None = None,
-        hostname: str | None = None,
-    ) -> None:
+    def send_all(self, title: str, message: str, file_path: str | None = None) -> None:
         notifications_cfg = self.config.get("notifications", {})
-        if (
-            "ntfy" in notifications_cfg
-            and notifications_cfg["ntfy"].get("enabled", False)
-            and notifications_cfg["ntfy"].get("url")
-            and notifications_cfg["ntfy"].get("topic")
-        ):
-            self.notify_ntfy(title, message, file_path)
+
+        if notifications_cfg.get("enabled", False) and notifications_cfg.get("urls"):
+            self.notify_apprise(title, message, file_path)
+            return
+
+        apprise_cfg = notifications_cfg.get("apprise", {})
         if (
             "apprise" in notifications_cfg
-            and notifications_cfg["apprise"].get("enabled", False)
-            and notifications_cfg["apprise"].get("url")
+            and apprise_cfg.get("enabled", False)
+            and (apprise_cfg.get("url") or apprise_cfg.get("urls"))
         ):
             self.notify_apprise(title, message, file_path)
-        if (
-            "webhook" in notifications_cfg
-            and notifications_cfg["webhook"].get("enabled", False)
-            and notifications_cfg["webhook"].get("url")
-        ):
-            self.notify_webhook(title, message, file_path, keywords, hostname)
-        if "tcp" in notifications_cfg and notifications_cfg["tcp"].get("enabled", False):
-            self.notify_tcp(title, message)

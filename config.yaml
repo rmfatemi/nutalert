@@ -12,30 +12,20 @@ nut_server:
 # notifications configuration
 ###############################################################################
 
-# configure notification methods below; at least one must be enabled.
+# configure notification methods below.
 notifications:
-  ntfy:
-    enabled: false
-    url: "http://your.ntfy.server.address"
-    topic: "nutalert"
-    tags: "ups"
-    priority: "5"
-    token: ""
-    username: ""
-    password: ""
-  apprise:
-    enabled: false
-    url: "tgram://123456789:ABCDEF1234567890/ChatID"
-  webhook:
-    enabled: false
-    url: "http://your.webhook.address"
-    headers:
-      authorization: "your token"
-      x-custom-header: "password123"
-  tcp:
-    enabled: false
-    host: "10.0.10.101"
-    port: 8083
+  enabled: true                  # set to false to disable all notifications
+  cooldown: 60                   # time to wait (s) between sending new alerts
+  # apprise is used for all notifications
+  # for more information on how to construct apprise urls for over 100 services,
+  # see: https://github.com/caronc/apprise
+  urls:
+    - url: "tgram://123456789:ABCDEF1234567890/ChatID"
+      enabled: false
+    - url: "discord://your-discord-webhook-id/your-discord-webhook-token"
+      enabled: false
+    - url: "slack://your-slack-token-a/your-slack-token-b/your-slack-token-c"
+      enabled: false
 
 ###############################################################################
 # check interval and alert mode
@@ -56,33 +46,33 @@ basic_alerts:
   # battery charge alert
   battery_charge:
     enabled: true
-    min: 90                     # minimum acceptable battery charge (%)
+    min: 90                              # minimum acceptable battery charge (%)
     message: "battery charge below minimum threshold"
   # runtime alert - simple threshold check
   runtime:
     enabled: true
-    min: 15                     # minimum acceptable runtime in minutes
+    min: 15                              # minimum acceptable runtime in minutes
     message: "runtime below minimum threshold"
   # load alert - separate from runtime
   load:
     enabled: true
-    max: 50                     # maximum acceptable load percentage
+    max: 50                              # maximum acceptable load percentage
     message: "ups load exceeds maximum threshold"
   # voltage alert
   input_voltage:
     enabled: false
-    min: 110.0                  # minimum acceptable input voltage (volts)
-    max: 130.0                  # maximum acceptable input voltage (volts)
+    min: 110.0                           # minimum acceptable input voltage (volts)
+    max: 130.0                           # maximum acceptable input voltage (volts)
     message: "input voltage outside acceptable range"
   # status alert
   ups_status:
     enabled: true
-    acceptable: ["ol", "online"] # acceptable ups operational statuses
-#    alert_when_status_changed: true # optional, enable If you only want to send an alert when the UPS status has changed
+    acceptable: ["ol", "online"]         # acceptable ups operational statuses
+    alert_when_status_changed: false     # enable if you only want to send an alert when the ups status has changed
     message: "ups status not in acceptable list"
 
 ###############################################################################
-# advanced alert configuration - forumula-based alerts
+# advanced alert configuration - formula-based alerts
 ###############################################################################
 
 # formula mode: create a custom formula using ups data
@@ -101,4 +91,4 @@ basic_alerts:
 # - complex calculation: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (actual_runtime_minutes / 60) < 0.5"
 formula_alert:
   expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
-  message: "ups alert: custom formula conditions not met"
+  message: "alert! load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"

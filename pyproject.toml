@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nutalert"
-version = "1.0.0"
+version = "1.1.0"
 description = "nutalert ups monitoring and alert system"
 authors = ["Rasool Fatemi <rmfatemi@gmail.com>"]
 readme = "README.md"
@@ -16,8 +16,10 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"
 pyyaml = ">=6.0"
-requests = ">=2.28.0"
 apprise = "^1.9.3"
+plotly = "^6.1.2"
+nicegui = "^2.19.0"
+pydantic = "^2.11.5"
 
 [tool.poetry.scripts]
 nutalert = "nutalert.server:main"
