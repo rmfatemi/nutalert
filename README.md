@@ -75,7 +75,7 @@ services:
     image: instantlinux/nut-upsd
     container_name: nut
     environment:
-      - TZ=America/New_York         # modify if different\
+      - TZ=America/New_York         # modify if different
       - API_PASSWORD={PASSWORD}     # required for nut, not nutalert
       - DRIVER=usbhid-ups           # modify based on your ups model
     devices:
