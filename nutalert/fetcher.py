@@ -3,7 +3,7 @@ import select
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("fetcher")
+logger = setup_logger(__name__)
 
 
 def fetch_nut_data(host, port, timeout=2):

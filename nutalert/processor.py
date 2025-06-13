@@ -10,7 +10,7 @@ logger = setup_logger(__name__)
 def get_ups_data_and_alerts():
     config = load_config()
 
-    default_return = {}, "Configuration error", True, get_recent_logs()
+    default_return = {}, "configuration error", True, get_recent_logs()
 
     if not config or "nut_server" not in config:
         logger.error("'nut_server' section is missing in the configuration.")
@@ -29,17 +29,17 @@ def get_ups_data_and_alerts():
     )
 
     if not raw_data:
-        logger.error("No data received from NUT server. Check connection and server status.")
-        return {}, "Error: No data from NUT server", True, get_recent_logs()
+        logger.error("no data received from nut server. check connection and server status.")
+        return {}, "error: no data from nut server", True, get_recent_logs()
 
     nut_values = parse_nut_data(raw_data)
     is_alerting, alert_message = should_alert(nut_values, config)
 
     if is_alerting:
         if "config error" not in alert_message.lower():
-            logger.warning(f"Alert Triggered: {alert_message}")
+            logger.warning(f"alert triggered: {alert_message}")
     else:
         ok_status = alert_message.split(":", 1)[-1].strip() if ":" in alert_message else alert_message
-        logger.info(f"Status OK: {ok_status}")
+        logger.info(f"status ok: {ok_status}")
 
     return nut_values, alert_message, is_alerting, get_recent_logs()

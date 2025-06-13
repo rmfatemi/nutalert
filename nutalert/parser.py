@@ -2,7 +2,7 @@ import re
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("parser")
+logger = setup_logger(__name__)
 
 
 def parse_nut_data(raw_data):
