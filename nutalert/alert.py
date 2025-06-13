@@ -1,7 +1,7 @@
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("alert")
+logger = setup_logger(__name__)
 
 
 def prepare_ups_env(nut_values):

@@ -3,7 +3,7 @@ import apprise
 from nutalert.utils import setup_logger
 
 
-logger = setup_logger("notifier")
+logger = setup_logger(__name__)
 
 
 class NutAlertNotifier:

@@ -6,11 +6,13 @@ from nicegui import ui, run, app
 import plotly.graph_objects as go
 from pydantic import BaseModel, Field, ValidationError
 
-from nutalert.utils import setup_logger, load_config, save_config, get_config_path
-from nutalert.processor import get_ups_data_and_alerts
 from nutalert.notifier import NutAlertNotifier
+from nutalert.processor import get_ups_data_and_alerts
+from nutalert.utils import setup_logger, load_config, save_config, get_config_path
+
 
 logger = setup_logger(__name__)
+
 
 COLOR_THEME = {
     "background": "#121212",
