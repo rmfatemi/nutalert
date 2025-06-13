@@ -15,7 +15,6 @@ from nutalert.processor import get_ups_data_and_alerts
 logger = setup_logger(__name__)
 
 
-# Color constants for dark mode theme
 COLOR_THEME = {
     "background": "#121212",
     "primary": "#1E88E5",
@@ -246,7 +245,7 @@ class AppState:
                 if self.nut_values:
                     sorted_items = sorted(self.nut_values.items())
                     for key, value in sorted_items:
-                        with ui.row().classes("w-full items-center justify-between"):
+                        with ui.row().classes("w-full items-center justify-between pr-10"):
                             ui.label(f"{key}:").classes("font-mono text-sm font-bold")
                             ui.label(str(value)).classes("font-mono text-sm")
 
@@ -262,7 +261,7 @@ state = AppState()
 
 def build_header():
     with ui.header(elevated=True).classes(
-        f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['secondary']}] text-[{COLOR_THEME['text']}]"
+        f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"
     ):
         with ui.row().classes("items-center"):
             ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0")
@@ -292,9 +291,9 @@ def build_dashboard_gauges():
 
 def build_raw_data_display():
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
-        ui.label("Raw UPS Data").classes("text-lg font-semibold")
+        ui.label("UPS Data").classes("text-lg font-semibold")
         state.ui_elements["raw_data_grid"] = ui.grid().classes(
-            "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4"
+            "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4 divide-x divide-gray-700"
         )
 
 
@@ -303,13 +302,13 @@ def build_config_editor():
         ui.label("Configuration").classes("text-lg font-semibold")
         ui.codemirror(
             value=state.config_text, language="yaml", on_change=lambda e: setattr(state, "config_text", e.value)
-        ).props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}").classes("w-full border").style("height: 60vh")
+        ).props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}").classes("w-full border").style("height: 54vh")
 
         def save_and_apply():
             try:
-                new_config_data = yaml.safe_.load(state.config_text)
+                new_config_data = yaml.safe_load(state.config_text)
                 AppConfig.model_validate(new_config_data)
-                save_status = save_config(new_config_data)
+                save_status = save_config(state.config_text)
                 state.config = new_config_data
                 ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
             except ValidationError as e:
@@ -326,7 +325,7 @@ def build_log_viewer():
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Live Logs").classes("text-lg font-semibold")
         state.ui_elements["log_view"] = (
-            ui.log(max_lines=1000).classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm").style("height: 40vh")
+            ui.log(max_lines=1000).classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm").style("height: 60vh")
         )
 
 
