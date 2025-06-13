@@ -1,17 +1,17 @@
 .DEFAULT_GOAL := docker
 
 .PHONY: help
-help: ## Show this help message.
+help: ## show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: ## Create virtual environment and install all dependencies.
+install: ## create virtual environment and install all dependencies
 	@echo "creating virtual environment using poetry"
 	@poetry install
 	@poetry run pre-commit install
 
 .PHONY: check
-check: ## Run checks: lock file consistency, linting, and obsolete dependency check.
+check: ## run checks: lock file consistency, linting, and obsolete dependency check
 	@echo "checking poetry lock file consistency with 'pyproject.toml': running poetry check --lock"
 	@poetry check --lock
 	@echo "linting code: running pre-commit"
@@ -20,18 +20,18 @@ check: ## Run checks: lock file consistency, linting, and obsolete dependency ch
 	@poetry run deptry .
 
 .PHONY: docker-build
-docker-build: ## Build the nutalert Docker image.
+docker-build: ## build the nutalert docker image
 	docker build -t nutalert -f Dockerfile .
 
 .PHONY: docker-run
-docker-run: ## Run the container named nutalert using the nutalert image.
-	docker run -p 3493:3493 -v $(shell pwd):/config --name nutalert nutalert
+docker-run: ## run the container named nutalert using the nutalert image
+	docker run -p 3493:3493 -p 8089:8080 -v $(shell pwd):/config --name nutalert nutalert
 
 .PHONY: docker
 docker: clean docker-build docker-run
 
 .PHONY: clean
-clean: ## Clean Docker containers, volumes, Python cache, build artifacts and temporary files.
+clean: ## clean docker containers, volumes, Python cache, build artifacts and temporary files
 	-docker rm -f nutalert 2>/dev/null || true
 	-docker volume rm nutalert_data 2>/dev/null || true
 	@echo "cleaning python cache files..."

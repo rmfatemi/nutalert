@@ -328,7 +328,7 @@ def build_config_editor():
         with ui.row().classes("w-full justify-between items-center"):
             ui.label("Configuration").classes("text-lg font-semibold")
             ui.link(
-                "Need help with configuration? Check out the template.",
+                "Need help with configuration? Check out the template",
                 "https://github.com/rmfatemi/nutalert/blob/master/config.yaml",
                 new_tab=True,
             ).classes("text-sm text-gray-500 hover:text-gray-400")
