@@ -31,7 +31,7 @@ COLOR_THEME = {
     "success_text": "#66BB6A",
     "error_text": "#EF5350",
     "log_bg": "#212121",
-    "codemirror_theme": "dracula",
+    "codemirror_theme": "darcula",
 }
 
 
@@ -265,7 +265,7 @@ def build_header():
         f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['secondary']}] text-[{COLOR_THEME['text']}]"
     ):
         with ui.row().classes("items-center"):
-            ui.image("/assets/logo.png").classes("w-10 h-9 mr-0")
+            ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0")
             ui.label("nutalert").classes("text-2xl font-bold")
         with ui.row().classes("items-center"):
             state.ui_elements["status_label"] = ui.label("Initializing...")
