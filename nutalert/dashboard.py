@@ -1,4 +1,5 @@
 import yaml
+import asyncio
 
 from typing import Dict, Any, Optional, List
 
@@ -10,9 +11,7 @@ from nutalert.notifier import NutAlertNotifier
 from nutalert.processor import get_ups_data_and_alerts
 from nutalert.utils import setup_logger, load_config, save_config, get_config_path
 
-
 logger = setup_logger(__name__)
-
 
 COLOR_THEME = {
     "background": "#121212",
@@ -168,33 +167,27 @@ class AppState:
         self.alert_message: str = "Awaiting first data poll..."
         self.is_alerting: bool = False
         self.logs: str = "Initializing log view..."
-        self.ui_elements: Dict[str, Any] = {}
-        self.last_alert_state: Optional[bool] = None
 
-    async def update_data_and_ui(self):
-        try:
-            result = await run.io_bound(get_ups_data_and_alerts)
-            if result is None:
-                return
+    async def poll_ups_data(self):
+        while True:
+            try:
+                result = await run.io_bound(get_ups_data_and_alerts)
+                if result:
+                    nut_values, alert_message, is_alerting, new_logs = result
+                    self.nut_values = nut_values or self.nut_values
+                    self.alert_message = alert_message
+                    self.is_alerting = is_alerting
+                    self.logs = new_logs or self.logs
+            except Exception as e:
+                logger.error(f"Error in background polling task: {e}")
+                self.alert_message = f"Error: {e}"
+                self.is_alerting = True
 
-            nut_values, alert_message, is_alerting, new_logs = result
+            await asyncio.sleep(self.config.get("check_interval", 15))
 
-            self.nut_values = nut_values or {}
-            self.alert_message = alert_message
-            self.is_alerting = is_alerting
-            self.logs = new_logs or self.logs
-
-            self.update_ui_components()
-
-        except Exception as e:
-            logger.error(f"error in data retrieval/update loop: {e}")
-            self.alert_message = f"Error: {e}"
-            self.is_alerting = True
-            self.update_ui_components()
-
-    def update_ui_components(self):
-        if "status_dot" in self.ui_elements:
-            dot = self.ui_elements["status_dot"]
+    def update_ui_components(self, ui_elements: Dict[str, Any]):
+        if "status_dot" in ui_elements:
+            dot = ui_elements["status_dot"]
             status = self.nut_values.get("ups.status", "unknown").lower()
             color = COLOR_THEME["error"]
             if "ol" in status:
@@ -204,14 +197,14 @@ class AppState:
             dot.style(f"background-color: {color}")
             dot.update()
 
-        if "status_label" in self.ui_elements:
-            label = self.ui_elements["status_label"]
+        if "status_label" in ui_elements:
+            label = ui_elements["status_label"]
             label.set_text(f"Status: {self.nut_values.get('ups.status', 'UNKNOWN').upper()}")
             label.update()
 
-        if self.last_alert_state != self.is_alerting and "alert_card" in self.ui_elements:
-            alert_card = self.ui_elements["alert_card"]
-            alert_icon = self.ui_elements["alert_icon"]
+        if "alert_card" in ui_elements:
+            alert_card = ui_elements["alert_card"]
+            alert_icon = ui_elements["alert_icon"]
             if self.is_alerting:
                 alert_card.classes(
                     remove=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
@@ -224,42 +217,41 @@ class AppState:
                     add=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
                 )
                 alert_icon.props("name=check_circle")
-            self.last_alert_state = self.is_alerting
 
-        if "alert_label" in self.ui_elements:
-            self.ui_elements["alert_label"].set_text(self.alert_message)
+        if "alert_label" in ui_elements:
+            ui_elements["alert_label"].set_text(self.alert_message)
 
-        if "load_plot" in self.ui_elements:
-            plot = self.ui_elements["load_plot"]
+        if "load_plot" in ui_elements:
+            plot = ui_elements["load_plot"]
             plot.figure = create_dial_gauge(
                 float(self.nut_values.get("ups.load", 0.0)), "UPS Load (%)", "load", 0, 100, self.config
             )
             plot.update()
 
-        if "charge_plot" in self.ui_elements:
-            plot = self.ui_elements["charge_plot"]
+        if "charge_plot" in ui_elements:
+            plot = ui_elements["charge_plot"]
             plot.figure = create_dial_gauge(
                 float(self.nut_values.get("battery.charge", 0.0)), "Battery Charge (%)", "charge", 0, 100, self.config
             )
             plot.update()
 
-        if "runtime_plot" in self.ui_elements:
-            plot = self.ui_elements["runtime_plot"]
+        if "runtime_plot" in ui_elements:
+            plot = ui_elements["runtime_plot"]
             plot.figure = create_dial_gauge(
                 float(self.nut_values.get("battery.runtime", 0.0)), "Runtime (min)", "runtime", 0, 0, self.config
             )
             plot.update()
 
-        if "voltage_plot" in self.ui_elements:
-            plot = self.ui_elements["voltage_plot"]
+        if "voltage_plot" in ui_elements:
+            plot = ui_elements["voltage_plot"]
             voltage = float(self.nut_values.get("input.voltage", 0.0))
             plot.figure = create_dial_gauge(
                 voltage, "Input Voltage (V)", "voltage", 0, 260 if voltage > 180 else 150, self.config
             )
             plot.update()
 
-        if "raw_data_grid" in self.ui_elements:
-            grid = self.ui_elements["raw_data_grid"]
+        if "raw_data_grid" in ui_elements:
+            grid = ui_elements["raw_data_grid"]
             grid.clear()
             with grid:
                 if self.nut_values:
@@ -269,8 +261,8 @@ class AppState:
                             ui.label(f"{key}:").classes("font-mono text-sm font-bold")
                             ui.label(str(value)).classes("font-mono text-sm")
 
-        if "log_view" in self.ui_elements:
-            log_element = self.ui_elements["log_view"]
+        if "log_view" in ui_elements:
+            log_element = ui_elements["log_view"]
             log_element.clear()
             for line in self.logs.splitlines():
                 log_element.push(line)
@@ -279,7 +271,7 @@ class AppState:
 state = AppState()
 
 
-def build_header():
+def build_header(ui_elements: Dict[str, Any]):
     with ui.header(elevated=True).classes(
         f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"
     ):
@@ -287,38 +279,38 @@ def build_header():
             ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0 no-darkreader")
             ui.label("nutalert").classes("text-2xl font-bold")
         with ui.row().classes("items-center"):
-            state.ui_elements["status_label"] = ui.label("Initializing...")
-            state.ui_elements["status_dot"] = ui.element("div").classes(
+            ui_elements["status_label"] = ui.label("Initializing...")
+            ui_elements["status_dot"] = ui.element("div").classes(
                 "w-4 h-4 rounded-full ml-2 transition-colors duration-500"
             )
 
 
-def build_alert_banner():
+def build_alert_banner(ui_elements: Dict[str, Any]):
     with ui.card().classes(f"w-full p-3 transition-all bg-[{COLOR_THEME['card']}]") as card:
-        state.ui_elements["alert_card"] = card
+        ui_elements["alert_card"] = card
         with ui.row().classes("items-center no-wrap"):
-            state.ui_elements["alert_icon"] = ui.icon("check_circle")
-            state.ui_elements["alert_label"] = ui.label()
+            ui_elements["alert_icon"] = ui.icon("check_circle")
+            ui_elements["alert_label"] = ui.label()
 
 
-def build_dashboard_gauges():
+def build_dashboard_gauges(ui_elements: Dict[str, Any]):
     with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full gap-4"):
-        state.ui_elements["load_plot"] = ui.plotly(create_dial_gauge(0.0, "UPS Load (%)", "load", 0, 100, state.config))
-        state.ui_elements["charge_plot"] = ui.plotly(
+        ui_elements["load_plot"] = ui.plotly(create_dial_gauge(0.0, "UPS Load (%)", "load", 0, 100, state.config))
+        ui_elements["charge_plot"] = ui.plotly(
             create_dial_gauge(0.0, "Battery Charge (%)", "charge", 0, 100, state.config)
         )
-        state.ui_elements["runtime_plot"] = ui.plotly(
+        ui_elements["runtime_plot"] = ui.plotly(
             create_dial_gauge(0.0, "Runtime (min)", "runtime", 0, 1800, state.config)
         )
-        state.ui_elements["voltage_plot"] = ui.plotly(
+        ui_elements["voltage_plot"] = ui.plotly(
             create_dial_gauge(0.0, "Input Voltage (V)", "voltage", 0, 150, state.config)
         )
 
 
-def build_raw_data_display():
+def build_raw_data_display(ui_elements: Dict[str, Any]):
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("UPS Data").classes("text-lg font-semibold")
-        state.ui_elements["raw_data_grid"] = ui.grid().classes(
+        ui_elements["raw_data_grid"] = ui.grid().classes(
             "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4 divide-x divide-gray-700"
         )
 
@@ -381,24 +373,27 @@ def build_config_editor():
             )
 
 
-def build_log_viewer():
+def build_log_viewer(ui_elements: Dict[str, Any]):
     with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
         ui.label("Live Logs").classes("text-lg font-semibold")
-        state.ui_elements["log_view"] = (
+        ui_elements["log_view"] = (
             ui.log(max_lines=1000)
             .classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm")
             .style("height: 60vh")
         )
 
 
-@ui.page("/", title="nutalert")
+@ui.page("/", title="nutalert", favicon="/assets/logo.png")
 async def dashboard_page():
     ui.dark_mode(True)
-    build_header()
+
+    ui_elements: Dict[str, Any] = {}
+
+    build_header(ui_elements)
     with ui.element("div").classes(
         f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"
     ):
-        build_alert_banner()
+        build_alert_banner(ui_elements)
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
             ui.tab("Configuration")
@@ -407,19 +402,19 @@ async def dashboard_page():
         with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
             with ui.tab_panel("Dashboard"):
                 with ui.column().classes("w-full gap-y-4"):
-                    build_dashboard_gauges()
-                    build_raw_data_display()
+                    build_dashboard_gauges(ui_elements)
+                    build_raw_data_display(ui_elements)
 
             with ui.tab_panel("Configuration"):
                 build_config_editor()
 
             with ui.tab_panel("Logs"):
-                build_log_viewer()
+                build_log_viewer(ui_elements)
 
-    await state.update_data_and_ui()
-    ui.timer(interval=state.config.get("check_interval", 15), callback=state.update_data_and_ui, active=True)
+    ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
 
 
+app.on_startup(state.poll_ups_data)
 app.add_static_files("/assets", "assets")
 
 if __name__ in {"__main__", "__mp_main__"}:
