@@ -11,7 +11,7 @@ class NutAlertNotifier:
         self.config = config
         self.container = container_name
 
-    def notify_apprise(self, message: str, file_path: str | None = None) -> bool:
+    def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> bool:
         ap_obj = apprise.Apprise()
         notifications_cfg = self.config.get("notifications", {})
         urls_config = []
@@ -47,20 +47,20 @@ class NutAlertNotifier:
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
         try:
             if file_path:
-                ap_obj.notify(body=short_body, attach=file_path)
+                ap_obj.notify(title=title, body=short_body, attach=file_path)
             else:
-                ap_obj.notify(body=short_body)
+                ap_obj.notify(title=title, body=short_body)
             logger.info("apprise notification sent successfully")
             return True
         except Exception as exc:
             logger.error("error sending apprise notification: %s", exc)
             return False
 
-    def send_all(self, message: str, file_path: str | None = None) -> None:
+    def send_all(self, title: str, message: str, file_path: str | None = None) -> None:
         notifications_cfg = self.config.get("notifications", {})
 
         if notifications_cfg.get("enabled", False) and notifications_cfg.get("urls"):
-            self.notify_apprise(message, file_path)
+            self.notify_apprise(title, message, file_path)
             return
 
         apprise_cfg = notifications_cfg.get("apprise", {})
@@ -69,4 +69,4 @@ class NutAlertNotifier:
             and apprise_cfg.get("enabled", False)
             and (apprise_cfg.get("url") or apprise_cfg.get("urls"))
         ):
-            self.notify_apprise(message, file_path)
+            self.notify_apprise(title, message, file_path)
