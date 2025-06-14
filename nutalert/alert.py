@@ -31,11 +31,7 @@ def check_battery_charge(basic_alerts, env):
 
     min_charge = basic_alerts["battery_charge"]["min"]
     if env["battery_charge"] < min_charge:
-        if "message" not in basic_alerts["battery_charge"]:
-            logger.warning("missing config: basic_alerts.battery_charge.message")
-            return "battery charge below threshold"
-        else:
-            return basic_alerts["battery_charge"]["message"]
+        return basic_alerts["battery_charge"]["message"]
     return None
 
 
@@ -47,11 +43,7 @@ def check_runtime(basic_alerts, env):
     min_runtime = basic_alerts["runtime"]["min"]
 
     if env["actual_runtime_minutes"] < min_runtime:
-        if "message" not in basic_alerts["runtime"]:
-            logger.warning("missing config: basic_alerts.runtime.message")
-            message = "runtime below minimum threshold"
-        else:
-            message = basic_alerts["runtime"]["message"]
+        message = basic_alerts["runtime"]["message"]
         return f"{message} ({env['actual_runtime_minutes']:.1f}min < {min_runtime}min)"
     return None
 
@@ -64,11 +56,7 @@ def check_load(basic_alerts, env):
     max_load = basic_alerts["load"]["max"]
 
     if env["ups_load"] > max_load:
-        if "message" not in basic_alerts["load"]:
-            logger.warning("missing config: basic_alerts.load.message")
-            message = "ups load exceeds maximum threshold"
-        else:
-            message = basic_alerts["load"]["message"]
+        message = basic_alerts["load"]["message"]
         return f"{message} ({env['ups_load']:.1f}% > {max_load}%)"
     return None
 
@@ -85,11 +73,7 @@ def check_input_voltage(basic_alerts, env):
     max_voltage = basic_alerts["input_voltage"]["max"]
 
     if env["input_voltage"] < min_voltage or env["input_voltage"] > max_voltage:
-        if "message" not in basic_alerts["input_voltage"]:
-            logger.warning("missing config: basic_alerts.input_voltage.message")
-            message = "input voltage outside acceptable range"
-        else:
-            message = basic_alerts["input_voltage"]["message"]
+        message = basic_alerts["input_voltage"]["message"]
         return f"{message} ({env['input_voltage']:.1f}v)"
     return None
 
@@ -104,11 +88,7 @@ def check_ups_status(basic_alerts, env):
 
     acceptable_statuses = basic_alerts["ups_status"]["acceptable"]
     if env["ups_status"] not in acceptable_statuses:
-        if "message" not in basic_alerts["ups_status"]:
-            logger.warning("missing config: basic_alerts.ups_status.message")
-            message = "ups status not in acceptable list"
-        else:
-            message = basic_alerts["ups_status"]["message"]
+        message = basic_alerts["ups_status"]["message"]
         if _should_skip_due_to_unchanged_status(basic_alerts, env["ups_status"]):
             return None
         return f"{message} ({env['ups_status']})"
@@ -175,26 +155,22 @@ def check_basic_alerts(config, env):
 def check_formula_alert(config, env):
     if "formula_alert" not in config:
         logger.error("missing required config: formula_alert")
-        return True, "ups alert: configuration error - formula_alert not specified"
+        return True, "configuration error - formula_alert not specified"
 
     formula_alert = config["formula_alert"]
 
     if "expression" not in formula_alert:
         logger.error("missing required config: formula_alert.expression")
-        return True, "ups alert: configuration error - formula expression not specified"
+        return True, "configuration error - formula expression not specified"
 
     formula_expr = formula_alert["expression"]
 
-    if "message" not in formula_alert:
-        logger.warning("missing config: formula_alert.message")
-        alert_message = "ups alert: formula conditions not met"
-    else:
-        try:
-            alert_message = formula_alert["message"].format(**env)
-        except KeyError as e:
-            error_msg = f"invalid variable in formula message: {e}"
-            logger.error(error_msg)
-            return True, f"ups alert: {error_msg}"
+    try:
+        alert_message = formula_alert["message"].format(**env)
+    except KeyError as e:
+        error_msg = f"invalid variable in formula message: {e}"
+        logger.error(error_msg)
+        return True, f"{error_msg}"
 
     try:
         result = eval(formula_expr, {"__builtins__": {}}, env)
@@ -204,14 +180,14 @@ def check_formula_alert(config, env):
             return (
                 False,
                 (
-                    f"ups ok: {env['actual_runtime_minutes']:.1f}min runtime, {env['ups_load']}% load,"
+                    f"UPS Ok: {env['actual_runtime_minutes']:.1f} min runtime, {env['ups_load']}% load,"
                     f" {env['battery_charge']}% charge"
                 ),
             )
     except Exception as e:
         error_msg = f"error evaluating formula '{formula_expr}': {e}"
         logger.error(error_msg)
-        return True, f"ups alert: {error_msg}"
+        return True, f"{error_msg}"
 
 
 def should_alert(nut_values, config):
@@ -219,7 +195,7 @@ def should_alert(nut_values, config):
 
     if "alert_mode" not in config:
         logger.error("missing required config: alert_mode")
-        return True, "ups alert: configuration error - alert_mode not specified"
+        return True, "configuration error - alert_mode not specified"
 
     alert_mode = config["alert_mode"]
 
@@ -227,12 +203,12 @@ def should_alert(nut_values, config):
         alerts_triggered = check_basic_alerts(config, env)
 
         if alerts_triggered:
-            return True, "ups alert: " + "; ".join(alerts_triggered)
+            return True, "" + "; ".join(alerts_triggered)
         else:
             return (
                 False,
                 (
-                    f"ups ok: {env['actual_runtime_minutes']:.1f} min runtime, {env['ups_load']}% load,"
+                    f"UPS Ok: {env['actual_runtime_minutes']:.1f} min runtime, {env['ups_load']}% load,"
                     f" {env['battery_charge']}% charge"
                 ),
             )
@@ -241,4 +217,4 @@ def should_alert(nut_values, config):
         return check_formula_alert(config, env)
     else:
         logger.error(f"unknown alert mode '{alert_mode}'")
-        return True, f"ups alert: unknown alert mode '{alert_mode}'"
+        return True, f"unknown alert mode '{alert_mode}'"
