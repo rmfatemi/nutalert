@@ -52,7 +52,7 @@ def get_ups_data_and_alerts():
                 if current_time - last_notification_time > cooldown:
                     logger.info(f"cooldown period ({cooldown}s) has passed. sending notification.")
                     notifier = NutAlertNotifier(config)
-                    notifier.send_all("UPS Alert", alert_message)
+                    notifier.send_all(title="UPS Alert", message=alert_message)
                     last_notification_time = current_time
                 else:
                     logger.info(
