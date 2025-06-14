@@ -11,7 +11,9 @@ from nutalert.notifier import NutAlertNotifier
 from nutalert.processor import get_ups_data_and_alerts
 from nutalert.utils import setup_logger, load_config, save_config, get_config_path
 
+
 logger = setup_logger(__name__)
+
 
 COLOR_THEME = {
     "background": "#121212",
@@ -25,6 +27,8 @@ COLOR_THEME = {
     "gauge_background": "rgba(0,0,0,0)",
     "success_bg": "rgba(102, 187, 106, 0.2)",
     "error_bg": "rgba(239, 83, 80, 0.2)",
+    "success_banner_bg": "#66BB6A",
+    "error_banner_bg": "#EF5350",
     "success_text": "#66BB6A",
     "error_text": "#EF5350",
     "log_bg": "#212121",
@@ -186,40 +190,28 @@ class AppState:
             await asyncio.sleep(self.config.get("check_interval", 15))
 
     def update_ui_components(self, ui_elements: Dict[str, Any]):
-        if "status_dot" in ui_elements:
-            dot = ui_elements["status_dot"]
-            status = self.nut_values.get("ups.status", "unknown").lower()
-            color = COLOR_THEME["error"]
-            if "ol" in status:
-                color = COLOR_THEME["success"]
-            elif "ob" in status:
-                color = COLOR_THEME["warning"]
-            dot.style(f"background-color: {color}")
-            dot.update()
+        if "header_status_card" in ui_elements:
+            header_status_card = ui_elements["header_status_card"]
+            header_status_icon = ui_elements["header_status_icon"]
+            header_status_label = ui_elements["header_status_label"]
 
-        if "status_label" in ui_elements:
-            label = ui_elements["status_label"]
-            label.set_text(f"Status: {self.nut_values.get('ups.status', 'UNKNOWN').upper()}")
-            label.update()
-
-        if "alert_card" in ui_elements:
-            alert_card = ui_elements["alert_card"]
-            alert_icon = ui_elements["alert_icon"]
             if self.is_alerting:
-                alert_card.classes(
-                    remove=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
-                    add=f"bg-[{COLOR_THEME['error_bg']}] text-[{COLOR_THEME['error_text']}]",
+                header_status_card.classes(
+                    remove=f"bg-[{COLOR_THEME['success_banner_bg']}]",
+                    add=f"bg-[{COLOR_THEME['error_banner_bg']}] text-[{COLOR_THEME['text']}]",
                 )
-                alert_icon.props("name=priority_high")
+                header_status_icon.props("name=error")
+                header_status_label.set_text(self.alert_message)
             else:
-                alert_card.classes(
-                    remove=f"bg-[{COLOR_THEME['error_bg']}] text-[{COLOR_THEME['error_text']}]",
-                    add=f"bg-[{COLOR_THEME['success_bg']}] text-[{COLOR_THEME['success_text']}]",
+                header_status_card.classes(
+                    remove=f"bg-[{COLOR_THEME['error_banner_bg']}]",
+                    add=f"bg-[{COLOR_THEME['success_banner_bg']}] text-[{COLOR_THEME['text']}]",
                 )
-                alert_icon.props("name=check_circle")
-
-        if "alert_label" in ui_elements:
-            ui_elements["alert_label"].set_text(self.alert_message)
+                header_status_icon.props("name=check_circle")
+                header_status_label.set_text(f"Status: {self.nut_values.get('ups.status', 'UNKNOWN').upper()}")
+            header_status_card.update()
+            header_status_icon.update()
+            header_status_label.update()
 
         if "load_plot" in ui_elements:
             plot = ui_elements["load_plot"]
@@ -279,18 +271,11 @@ def build_header(ui_elements: Dict[str, Any]):
             ui.image("/assets/logo.svg").classes("w-10 h-9 mr-0 no-darkreader")
             ui.label("nutalert").classes("text-2xl font-bold")
         with ui.row().classes("items-center"):
-            ui_elements["status_label"] = ui.label("Initializing...")
-            ui_elements["status_dot"] = ui.element("div").classes(
-                "w-4 h-4 rounded-full ml-2 transition-colors duration-500"
-            )
-
-
-def build_alert_banner(ui_elements: Dict[str, Any]):
-    with ui.card().classes(f"w-full p-3 transition-all bg-[{COLOR_THEME['card']}]") as card:
-        ui_elements["alert_card"] = card
-        with ui.row().classes("items-center no-wrap"):
-            ui_elements["alert_icon"] = ui.icon("check_circle")
-            ui_elements["alert_label"] = ui.label()
+            with ui.card().classes("p-2 transition-all") as card:
+                ui_elements["header_status_card"] = card
+                with ui.row().classes("items-center no-wrap gap-x-2"):
+                    ui_elements["header_status_icon"] = ui.icon("check_circle").classes("text-lg")
+                    ui_elements["header_status_label"] = ui.label("Initializing...")
 
 
 def build_dashboard_gauges(ui_elements: Dict[str, Any]):
@@ -331,7 +316,7 @@ def build_config_editor():
             )
             .props(f"line-numbers theme={COLOR_THEME['codemirror_theme']}")
             .classes("w-full border")
-            .style("height: 54vh")
+            .style("height: 58vh")
         )
 
         def send_test_notification():
@@ -379,7 +364,7 @@ def build_log_viewer(ui_elements: Dict[str, Any]):
         ui_elements["log_view"] = (
             ui.log(max_lines=1000)
             .classes(f"w-full bg-[{COLOR_THEME['log_bg']}] font-mono text-sm")
-            .style("height: 60vh")
+            .style("height: 68vh")
         )
 
 
@@ -390,14 +375,18 @@ async def dashboard_page():
     ui_elements: Dict[str, Any] = {}
 
     build_header(ui_elements)
+
     with ui.element("div").classes(
         f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"
     ):
-        build_alert_banner(ui_elements)
-        with ui.tabs().classes("w-full") as tabs:
-            ui.tab("Dashboard")
-            ui.tab("Configuration")
-            ui.tab("Logs")
+        with ui.row().classes("w-full items-center"):
+            with ui.element("div").classes("flex-none"):
+                with ui.tabs().classes("w-full") as tabs:
+                    ui.tab("Dashboard")
+                    ui.tab("Configuration")
+                    ui.tab("Logs")
+
+            ui.element("div").classes("flex-grow")
 
         with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
             with ui.tab_panel("Dashboard"):
