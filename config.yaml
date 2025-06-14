@@ -41,6 +41,9 @@ alert_mode: "basic"
 # basic alert confuguration - simple threshold-based alerts
 ###############################################################################
 
+# note: even if you opt to use formula mode, it is recommended to set the accetable values in basic
+# mode as these values are used to create better thresholds for dashboard gauages (purely cosmetic)
+
 # if ANY enabled alert condition fails, an alert will be triggered (using OR logic)
 basic_alerts:
   # battery charge alert
