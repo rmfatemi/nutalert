@@ -50,7 +50,9 @@ Before beginning your deployment, make sure your NUT server is operational. The 
 ### Verify NUT Server Connectivity
 If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
 
-`/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493`
+```bash
+/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
+```
 
 A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
 
