@@ -47,29 +47,29 @@ basic_alerts:
   battery_charge:
     enabled: true
     min: 90                              # minimum acceptable battery charge (%)
-    message: "battery charge below minimum threshold"
+    message: "UPS battery charge below minimum threshold"
   # runtime alert - simple threshold check
   runtime:
     enabled: true
     min: 15                              # minimum acceptable runtime in minutes
-    message: "runtime below minimum threshold"
+    message: "UPS runtime below minimum threshold"
   # load alert - separate from runtime
   load:
     enabled: true
     max: 50                              # maximum acceptable load percentage
-    message: "ups load exceeds maximum threshold"
+    message: "UPS load exceeds maximum threshold"
   # voltage alert
   input_voltage:
     enabled: false
     min: 110.0                           # minimum acceptable input voltage (volts)
     max: 130.0                           # maximum acceptable input voltage (volts)
-    message: "input voltage outside acceptable range"
+    message: "UPS input voltage outside acceptable range"
   # status alert
   ups_status:
     enabled: true
     acceptable: ["ol", "online"]         # acceptable ups operational statuses
     alert_when_status_changed: false     # enable if you only want to send an alert when the ups status has changed
-    message: "ups status not in acceptable list"
+    message: "UPS status not in acceptable list"
 
 ###############################################################################
 # advanced alert configuration - formula-based alerts
@@ -91,4 +91,4 @@ basic_alerts:
 # - complex calculation: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (actual_runtime_minutes / 60) < 0.5"
 formula_alert:
   expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
-  message: "alert! load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"
+  message: "UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"
