@@ -41,4 +41,4 @@ ENV CONFIG_PATH=/config/config.yaml
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:8087/ || exit 1
 
-CMD ["python", "-m", "nutalert.dashboard"]
+CMD ["python", "-m", "nutalert.app"]
