@@ -6,7 +6,6 @@ from nutalert.ui.theme import COLOR_THEME
 from nutalert.ui.header import build_header
 from nutalert.ui.tabs.dashboard import build_dashboard_tab
 from nutalert.ui.tabs.settings import build_settings_tab
-from nutalert.ui.tabs.logs import build_logs_tab
 
 state = AppState()
 
@@ -22,16 +21,13 @@ async def dashboard_page():
     ):
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
-            ui.tab("Settings")
-            ui.tab("Logs")
+            ui.tab("Configuration")
             
         with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)
-            with ui.tab_panel("Settings"):
-                build_settings_tab(state)
-            with ui.tab_panel("Logs"):
-                build_logs_tab(ui_elements)
+            with ui.tab_panel("Configuration"):
+                build_settings_tab(state, ui_elements)
 
         ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
 
