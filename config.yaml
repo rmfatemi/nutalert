@@ -2,6 +2,7 @@ nut_server:
   host: 10.0.10.101
   port: 3493
   timeout: 3
+  check_interval: 5.0
 notifications:
   enabled: true
   cooldown: 60
@@ -10,8 +11,6 @@ notifications:
     enabled: false
   - url: discord://your-discord-webhook-id/your-discord-webhook-token
     enabled: false
-  - url: slack://your-slack-token-a/your-slack-token-b/your-slack-token-c
-    enabled: false
 check_interval: 5
 alert_mode: basic
 basic_alerts:
@@ -19,14 +18,17 @@ basic_alerts:
     enabled: true
     min: 90
     message: UPS battery charge below minimum threshold
+    max: 0.0
   runtime:
     enabled: true
     min: 15
     message: UPS runtime below minimum threshold
+    max: 0.0
   load:
     enabled: true
     max: 50
     message: UPS load exceeds maximum threshold
+    min: 0.0
   input_voltage:
     enabled: false
     min: 110.0
