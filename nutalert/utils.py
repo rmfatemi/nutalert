@@ -20,7 +20,7 @@ class LogBufferIO:
 
 def setup_logger(name: str = __name__, level: int = logging.INFO) -> logging.Logger:
     formatter = logging.Formatter(
-        "%(asctime)s - [%(levelname)s] - %(message)s",
+        "%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logger = logging.getLogger(name)
@@ -52,7 +52,7 @@ def get_config_path() -> str:
 def load_config() -> dict:
     path = get_config_path()
     if not os.path.exists(path):
-        logging.getLogger(__name__).warning(f"Config file not found at '{path}'. Creating a default one.")
+        logging.getLogger(__name__).warning(f"config file not found at '{path}'. creating a default one.")
         default_config = {
             "nut_server": {"host": "127.0.0.1", "port": 3493, "timeout": 5},
             "check_interval": 15,
@@ -65,7 +65,7 @@ def load_config() -> dict:
         with open(path, "r") as f:
             return yaml.safe_load(f) or {}
     except yaml.YAMLError as e:
-        logging.getLogger(__name__).error(f"Error parsing config file '{path}': {e}")
+        logging.getLogger(__name__).error(f"error parsing config file '{path}': {e}")
         return {}
 
 
@@ -74,8 +74,8 @@ def save_config(config_data: dict) -> str:
     try:
         with open(path, "w") as f:
             yaml.dump(config_data, f, sort_keys=False, indent=2)
-        return "✅ Configuration saved successfully!"
+        return "configuration saved successfully!"
     except Exception as e:
-        error_msg = f"Error saving configuration: {e}"
+        error_msg = f"error saving configuration: {e}"
         logging.getLogger(__name__).error(error_msg)
-        return f"❌ {error_msg}"
+        return f"{error_msg}"
