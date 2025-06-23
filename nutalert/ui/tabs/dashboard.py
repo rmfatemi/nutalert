@@ -17,7 +17,7 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
             ui_elements["voltage_plot"] = ui.plotly(
                 create_dial_gauge(0.0, "Input Voltage (V)", "voltage", 0, 150, state.config)
             )
-        
+
         with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
             ui.label("UPS Data").classes("text-lg font-semibold")
             ui_elements["raw_data_grid"] = ui.grid().classes(
