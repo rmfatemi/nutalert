@@ -2,6 +2,7 @@ from typing import Dict, Any
 import plotly.graph_objects as go
 from .theme import COLOR_THEME
 
+
 def create_dial_gauge(
     value: float, title: str, metric_type: str, range_min: float, range_max: float, config: Dict[str, Any]
 ) -> go.Figure:

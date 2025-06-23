@@ -2,6 +2,7 @@ from typing import Dict, Any
 from nicegui import ui
 from nutalert.ui.theme import COLOR_THEME
 
+
 def build_header(ui_elements: Dict[str, Any]):
     with ui.header(elevated=True).classes(
         f"justify-between items-center px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"
