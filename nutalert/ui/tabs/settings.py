@@ -39,7 +39,7 @@ def alert_rules_settings(config: Dict) -> None:
         alert_mode_radio = (
             ui.radio(["basic", "formula"], value=config.get("alert_mode", "basic"))
             .bind_value(config, "alert_mode")
-            .props(f'inline color={COLOR_THEME["button_color"]}')
+            .props(f'inline color={COLOR_THEME["primary"]}')
         )
     with ui.column().classes("w-full").bind_visibility_from(alert_mode_radio, "value", value="basic"):
         basic_alert_rules(config["basic_alerts"])
@@ -66,7 +66,7 @@ def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max:
 
     with ui.expansion(title, icon="rule").classes("w-full border rounded-md"):
         with ui.row().classes("w-full justify-end"):
-            ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["button_color"]}')
+            ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
         with ui.row().classes("w-full items-center"):
             if has_min and not has_max:
                 ui.number("Minimum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "min")
@@ -94,7 +94,10 @@ def ups_status_alert_card(config: Dict) -> None:
     status_conf = config["ups_status"]
     with ui.expansion("UPS Status", icon="power").classes("w-full border rounded-md"):
         with ui.row().classes("w-full justify-end"):
-            ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["button_color"]}')
+            ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
+        ui.switch("Alert on any status change").bind_value(status_conf, "alert_when_status_changed").props(
+            f'color={COLOR_THEME["primary"]}'
+        )
         ui.input("Acceptable Statuses", placeholder="e.g. OL, ONLINE").bind_value_from(
             status_conf, "acceptable", lambda s: ", ".join(s or [])
         ).bind_value_to(
@@ -102,9 +105,6 @@ def ups_status_alert_card(config: Dict) -> None:
         )
         ui.input("Alert Message", placeholder="Notification message...").classes("w-full").bind_value(
             status_conf, "message"
-        )
-        ui.switch("Alert on any status change").bind_value(status_conf, "alert_when_status_changed").props(
-            f'color={COLOR_THEME["button_color"]}'
         )
 
 
@@ -118,42 +118,48 @@ def formula_alert_rules(formula_alert_config: Dict) -> None:
 
 
 def notification_settings(config: Dict) -> None:
-    @ui.refreshable
-    def url_list() -> None:
-        if not config["notifications"]["urls"]:
-            ui.label("No notification URLs added.").classes("text-xs text-gray-500 self-center py-4")
-        for url_obj in config["notifications"]["urls"]:
-            with ui.row().classes("w-full items-center gap-x-2"):
-                ui.input("URL", placeholder="e.g., tgram://...").classes("flex-grow").bind_value(url_obj, "url")
-                ui.switch().props(f'dense color={COLOR_THEME["button_color"]}').bind_value(url_obj, "enabled")
-                ui.button(
-                    icon="delete",
-                    on_click=lambda u=url_obj: (config["notifications"]["urls"].remove(u), url_list.refresh()),
-                ).props(f'flat dense color={COLOR_THEME["button_color"]}')
-
     with ui.row().classes("w-full justify-between items-center"):
         ui.label("Notifications").classes("text-lg font-semibold")
-        ui.switch("Enable All").bind_value(config["notifications"], "enabled").props(
-            f'color={COLOR_THEME["button_color"]}'
+        enable_switch = ui.switch("Enable").bind_value(config["notifications"], "enabled").props(
+            f'color={COLOR_THEME["primary"]}'
         )
-    ui.number("Cooldown (s)").bind_value(config["notifications"], "cooldown")
-    ui.separator().classes("my-2")
 
-    url_list()
+    with ui.column().classes("w-full").bind_visibility_from(enable_switch, "value"):
 
-    with ui.row().classes("w-full items-center mt-2 gap-x-2"):
-        ui.button(
-            "Add URL",
-            icon="add",
-            color=COLOR_THEME["button_color"],
-            on_click=lambda: (config["notifications"]["urls"].append({"url": "", "enabled": True}), url_list.refresh()),
-        )
-        ui.button(
-            "Test Alerts",
-            on_click=lambda: test_notifications(config),
-            icon="notification_important",
-            color=COLOR_THEME["button_color"],
-        )
+        @ui.refreshable
+        def url_list() -> None:
+            if not config["notifications"]["urls"]:
+                ui.label("No notification URLs added.").classes("text-xs text-gray-500 self-center py-4")
+            for url_obj in config["notifications"]["urls"]:
+                with ui.row().classes("w-full items-center gap-x-2"):
+                    ui.input("URL", placeholder="e.g., tgram://...").classes("flex-grow").bind_value(url_obj, "url")
+                    ui.switch().props(f'dense color={COLOR_THEME["primary"]}').bind_value(url_obj, "enabled")
+                    ui.button(
+                        icon="delete",
+                        on_click=lambda u=url_obj: (config["notifications"]["urls"].remove(u), url_list.refresh()),
+                    ).props(f'flat dense color={COLOR_THEME["primary"]}')
+
+        ui.number("Cooldown (s)").bind_value(config["notifications"], "cooldown")
+        ui.separator().classes("my-2")
+
+        url_list()
+
+        with ui.row().classes("w-full items-center mt-2 gap-x-2"):
+            ui.button(
+                "Add URL",
+                icon="add",
+                color=COLOR_THEME["primary"],
+                on_click=lambda: (
+                    config["notifications"]["urls"].append({"url": "", "enabled": True}),
+                    url_list.refresh(),
+                ),
+            )
+            ui.button(
+                "Test Alerts",
+                on_click=lambda: test_notifications(config),
+                icon="notification_important",
+                color=COLOR_THEME["primary"],
+            )
 
 
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
@@ -180,9 +186,11 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
                     "Save Settings",
                     on_click=lambda: save_settings(config),
                     icon="save",
-                    color=COLOR_THEME["button_color"],
+                    color=COLOR_THEME["primary"],
                 )
 
-        with ui.card().classes("w-full items-stretch gap-y-4"):
+        with ui.card().classes("w-full flex flex-col items-stretch gap-y-4"):
             ui.label("Live Logs").classes("text-lg font-semibold self-center")
-            ui_elements["log_view"] = ui.log(max_lines=1000).classes("w-full font-mono text-sm").style("height: 120vh")
+            ui_elements["log_view"] = ui.log(max_lines=1000).classes(
+                f"w-full font-mono text-sm flex-grow bg-[{COLOR_THEME['card']}] p-2 rounded-md"
+            )
