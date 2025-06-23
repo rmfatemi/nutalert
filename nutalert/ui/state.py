@@ -1,7 +1,7 @@
 import asyncio
 
-from typing import Dict, Any
 from nicegui import ui, run
+from typing import Dict, Any
 
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.utils import setup_logger, load_config
