@@ -1,10 +1,11 @@
 import time
+from typing import Tuple, Dict
 
 from nutalert.alert import should_alert
 from nutalert.parser import parse_nut_data
 from nutalert.fetcher import fetch_nut_data
 from nutalert.notifier import NutAlertNotifier
-from nutalert.utils import setup_logger, load_config, get_recent_logs
+from nutalert.utils import setup_logger, get_recent_logs
 
 
 logger = setup_logger(__name__)
@@ -13,11 +14,10 @@ logger = setup_logger(__name__)
 last_notification_time: float = 0.0
 
 
-def get_ups_data_and_alerts():
+def get_ups_data_and_alerts(config: dict):
     global last_notification_time
-    config = load_config()
 
-    default_return = {}, "configuration error", True, get_recent_logs()
+    default_return: Tuple[Dict, str, bool, str] = {}, "configuration error", True, get_recent_logs()
 
     if not config or "nut_server" not in config:
         logger.error("'nut_server' section is missing in the configuration.")
