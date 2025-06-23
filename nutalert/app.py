@@ -17,14 +17,9 @@ async def dashboard_page():
 
     build_header(ui_elements)
 
-    with ui.element("div").classes(
-        f"w-full p-4 space-y-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"
-    ):
-        with ui.tabs().classes("w-full") as tabs:
-            ui.tab("Dashboard")
-            ui.tab("Configuration")
-
-        with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
+    with ui.element("div").classes(f"w-full p-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
+        # Use the header's tabs for tab_panels
+        with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)
             with ui.tab_panel("Configuration"):
