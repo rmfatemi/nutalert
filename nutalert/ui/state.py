@@ -1,12 +1,13 @@
 import asyncio
 
 from typing import Dict, Any
-
 from nicegui import ui, run
-from nutalert.processor import get_ups_data_and_alerts
+
+from nutalert.ui.theme import COLOR_THEME
 from nutalert.utils import setup_logger, load_config
 from nutalert.ui.components import create_dial_gauge
-from nutalert.ui.theme import COLOR_THEME
+from nutalert.processor import get_ups_data_and_alerts
+
 
 logger = setup_logger(__name__)
 
@@ -21,10 +22,12 @@ class AppState:
 
     async def poll_ups_data(self):
         while True:
+            interval = 15
             try:
-                check_interval = self.config.get("nut_server", {}).get("check_interval") or 15
+                self.config = load_config()
+                check_interval = self.config.get("nut_server", {}).get("check_interval", 15)
                 interval = max(5, check_interval)
-                result = await run.io_bound(get_ups_data_and_alerts)
+                result = await run.io_bound(get_ups_data_and_alerts, self.config)
                 if result:
                     nut_values, alert_message, is_alerting, new_logs = result
                     self.nut_values = nut_values or self.nut_values

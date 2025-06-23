@@ -25,9 +25,6 @@ def test_notifications(config: Dict) -> None:
 
 def nut_server_settings(config: Dict) -> None:
     ui.label("NUT Server").classes("text-lg font-semibold")
-    with ui.row().classes("p-2 rounded-md bg-yellow-900/50 w-full items-center gap-x-2"):
-        ui.icon("warning", color="amber")
-        ui.label("Changes to Host, Port, or Timeout require a manual application restart.").classes("text-xs")
     with ui.grid(columns=4).classes("w-full gap-4 pt-4"):
         ui.input("Host").bind_value(config["nut_server"], "host")
         ui.number("Port", min=1, max=65535, step=1).bind_value(config["nut_server"], "port")
