@@ -1,5 +1,6 @@
 from nicegui import ui
 from typing import Dict, Any
+
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.ui.components import create_dial_gauge
 

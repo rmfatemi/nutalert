@@ -120,8 +120,8 @@ def formula_alert_rules(formula_alert_config: Dict) -> None:
 def notification_settings(config: Dict) -> None:
     with ui.row().classes("w-full justify-between items-center"):
         ui.label("Notifications").classes("text-lg font-semibold")
-        enable_switch = ui.switch("Enable").bind_value(config["notifications"], "enabled").props(
-            f'color={COLOR_THEME["primary"]}'
+        enable_switch = (
+            ui.switch("Enable").bind_value(config["notifications"], "enabled").props(f'color={COLOR_THEME["primary"]}')
         )
 
     with ui.column().classes("w-full").bind_visibility_from(enable_switch, "value"):
