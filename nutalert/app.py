@@ -9,11 +9,12 @@ from nutalert.ui.tabs.settings import build_settings_tab
 
 state = AppState()
 
+
 @ui.page("/", title="nutalert")
 async def dashboard_page():
     ui.dark_mode(True)
     ui_elements: Dict[str, Any] = {}
-    
+
     build_header(ui_elements)
 
     with ui.element("div").classes(
@@ -22,7 +23,7 @@ async def dashboard_page():
         with ui.tabs().classes("w-full") as tabs:
             ui.tab("Dashboard")
             ui.tab("Configuration")
-            
+
         with ui.tab_panels(tabs, value="Dashboard").classes("w-full mt-4"):
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)
@@ -36,8 +37,10 @@ app.on_startup(state.poll_ups_data)
 
 app.add_static_files("/assets", "assets")
 
+
 def main():
     ui.run(title="nutalert", port=8087, favicon="assets/logo.ico", reload=False)
+
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()

@@ -1,4 +1,3 @@
-
 import asyncio
 
 from typing import Dict, Any
@@ -10,6 +9,7 @@ from nutalert.ui.components import create_dial_gauge
 from nutalert.ui.theme import COLOR_THEME
 
 logger = setup_logger(__name__)
+
 
 class AppState:
     def __init__(self):
@@ -43,29 +43,45 @@ class AppState:
             header_status_icon = ui_elements["header_status_icon"]
             header_status_label = ui_elements["header_status_label"]
             if self.is_alerting:
-                header_status_card.classes(remove=f"bg-[{COLOR_THEME['success_banner_bg']}]", add=f"bg-[{COLOR_THEME['error_banner_bg']}] text-[{COLOR_THEME['text']}]")
+                header_status_card.classes(
+                    remove=f"bg-[{COLOR_THEME['success_banner_bg']}]",
+                    add=f"bg-[{COLOR_THEME['error_banner_bg']}] text-[{COLOR_THEME['text']}]",
+                )
                 header_status_icon.props("name=error")
                 header_status_label.set_text(self.alert_message)
             else:
-                header_status_card.classes(remove=f"bg-[{COLOR_THEME['error_banner_bg']}]", add=f"bg-[{COLOR_THEME['success_banner_bg']}] text-[{COLOR_THEME['text']}]")
+                header_status_card.classes(
+                    remove=f"bg-[{COLOR_THEME['error_banner_bg']}]",
+                    add=f"bg-[{COLOR_THEME['success_banner_bg']}] text-[{COLOR_THEME['text']}]",
+                )
                 header_status_icon.props("name=check_circle")
                 header_status_label.set_text(f"Status: {self.nut_values.get('ups.status', 'UNKNOWN').upper()}")
-            header_status_card.update(); header_status_icon.update(); header_status_label.update()
-        
+            header_status_card.update()
+            header_status_icon.update()
+            header_status_label.update()
+
         if "load_plot" in ui_elements:
-            ui_elements["load_plot"].figure = create_dial_gauge(float(self.nut_values.get("ups.load", 0.0)), "UPS Load (%)", "load", 0, 100, self.config)
+            ui_elements["load_plot"].figure = create_dial_gauge(
+                float(self.nut_values.get("ups.load", 0.0)), "UPS Load (%)", "load", 0, 100, self.config
+            )
             ui_elements["load_plot"].update()
         if "charge_plot" in ui_elements:
-            ui_elements["charge_plot"].figure = create_dial_gauge(float(self.nut_values.get("battery.charge", 0.0)), "Battery Charge (%)", "charge", 0, 100, self.config)
+            ui_elements["charge_plot"].figure = create_dial_gauge(
+                float(self.nut_values.get("battery.charge", 0.0)), "Battery Charge (%)", "charge", 0, 100, self.config
+            )
             ui_elements["charge_plot"].update()
         if "runtime_plot" in ui_elements:
-            ui_elements["runtime_plot"].figure = create_dial_gauge(float(self.nut_values.get("battery.runtime", 0.0)), "Runtime (min)", "runtime", 0, 0, self.config)
+            ui_elements["runtime_plot"].figure = create_dial_gauge(
+                float(self.nut_values.get("battery.runtime", 0.0)), "Runtime (min)", "runtime", 0, 0, self.config
+            )
             ui_elements["runtime_plot"].update()
         if "voltage_plot" in ui_elements:
             voltage = float(self.nut_values.get("input.voltage", 0.0))
-            ui_elements["voltage_plot"].figure = create_dial_gauge(voltage, "Input Voltage (V)", "voltage", 0, 260 if voltage > 180 else 150, self.config)
+            ui_elements["voltage_plot"].figure = create_dial_gauge(
+                voltage, "Input Voltage (V)", "voltage", 0, 260 if voltage > 180 else 150, self.config
+            )
             ui_elements["voltage_plot"].update()
-        
+
         if "raw_data_grid" in ui_elements:
             grid = ui_elements["raw_data_grid"]
             grid.clear()
@@ -75,7 +91,7 @@ class AppState:
                         with ui.row().classes("w-full items-center justify-between pr-10"):
                             ui.label(f"{key}:").classes("font-mono text-sm font-bold")
                             ui.label(str(value)).classes("font-mono text-sm")
-        
+
         if "log_view" in ui_elements:
             log_element = ui_elements["log_view"]
             log_element.clear()
