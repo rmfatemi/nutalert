@@ -1,6 +1,6 @@
 COLOR_THEME = {
     "background": "#121212",
-    "primary": "#1E88E5",
+    "primary": "#FF8F00",
     "secondary": "#263238",
     "text": "#E0E0E0",
     "card": "#2B2B2B",
@@ -16,5 +16,4 @@ COLOR_THEME = {
     "error_text": "#EF5350",
     "log_bg": "#212121",
     "codemirror_theme": "darcula",
-    "button_color": "#FF8F00",
 }
