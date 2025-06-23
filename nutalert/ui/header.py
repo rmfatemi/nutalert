@@ -1,5 +1,7 @@
-from typing import Dict, Any
 from nicegui import ui
+from typing import Dict, Any
+
+
 from nutalert.ui.theme import COLOR_THEME
 
 

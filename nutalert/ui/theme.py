@@ -15,5 +15,4 @@ COLOR_THEME = {
     "success_text": "#66BB6A",
     "error_text": "#EF5350",
     "log_bg": "#212121",
-    "codemirror_theme": "darcula",
 }
