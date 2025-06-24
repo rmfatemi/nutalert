@@ -65,27 +65,23 @@ def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max:
     alert_conf.setdefault("min", 110.0 if key == "input_voltage" else 0.0)
     alert_conf.setdefault("max", 130.0 if key == "input_voltage" else 0.0)
 
-    with ui.row().classes("w-full items-center"):
-        enable_switch = ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
-        ui.label(title).classes("text-lg font-semibold ml-2")
-
-    with (
-        ui.expansion(title, icon="rule")
-        .classes("w-full border rounded-md")
-        .bind_visibility_from(enable_switch, "value")
-    ):
-        with ui.row().classes("w-full items-center"):
-            if has_min and not has_max:
-                ui.number("Minimum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "min")
-            if has_max and not has_min:
-                ui.number("Maximum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "max")
-            if has_min and has_max:
-                with ui.row().classes("w-full no-wrap"):
-                    ui.number("Min", format="%.1f").bind_value(alert_conf, "min")
-                    ui.number("Max", format="%.1f").bind_value(alert_conf, "max")
-        ui.input("Alert Message", placeholder="Notification message...").classes("w-full pt-2").bind_value(
-            alert_conf, "message"
-        )
+    with ui.expansion(icon="rule").classes("w-full border rounded-md"):
+        with ui.row().classes("items-center w-full"):
+            ui.label(title).classes("text-lg font-semibold flex-grow")
+            ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
+        with ui.column().bind_visibility_from(alert_conf, "enabled"):
+            with ui.row().classes("w-full items-center"):
+                if has_min and not has_max:
+                    ui.number("Minimum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "min")
+                if has_max and not has_min:
+                    ui.number("Maximum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "max")
+                if has_min and has_max:
+                    with ui.row().classes("w-full no-wrap"):
+                        ui.number("Min", format="%.1f").bind_value(alert_conf, "min")
+                        ui.number("Max", format="%.1f").bind_value(alert_conf, "max")
+            ui.input("Alert Message", placeholder="Notification message...").classes("w-full pt-2").bind_value(
+                alert_conf, "message"
+            )
 
 
 def ups_status_alert_card(config: Dict) -> None:
@@ -99,32 +95,29 @@ def ups_status_alert_card(config: Dict) -> None:
         },
     )
     status_conf = config["ups_status"]
-    with ui.row().classes("w-full items-center mb-2"):
-        enable_switch = ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
-        ui.label("UPS Status").classes("text-lg font-semibold ml-2")
-    with (
-        ui.expansion("UPS Status", icon="power")
-        .classes("w-full border rounded-md")
-        .bind_visibility_from(enable_switch, "value")
-    ):
-        with ui.row().classes("w-full items-center gap-x-2"):
-            alert_status_checkbox = (
-                ui.checkbox("Alert on any status change")
-                .classes("flex-1")
-                .bind_value(status_conf, "alert_when_status_changed")
-            )
-            acceptable_input = (
-                ui.input("Acceptable Statuses", placeholder="e.g. OL, ONLINE")
-                .classes("flex-1 ml-auto")
-                .bind_value_from(status_conf, "acceptable", lambda s: ", ".join(s or []))
-                .bind_value_to(
-                    status_conf, "acceptable", lambda s: [i.strip().lower() for i in (s or "").split(",") if i.strip()]
+    with ui.expansion(icon="power").classes("w-full border rounded-md"):
+        with ui.row().classes("items-center w-full"):
+            ui.label("UPS Status").classes("text-lg font-semibold flex-grow")
+            ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
+        with ui.column().bind_visibility_from(status_conf, "enabled"):
+            with ui.row().classes("w-full items-center gap-x-2"):
+                alert_status_checkbox = (
+                    ui.checkbox("Alert on any status change")
+                    .classes("flex-1")
+                    .bind_value(status_conf, "alert_when_status_changed")
                 )
+                acceptable_input = (
+                    ui.input("Acceptable Statuses", placeholder="e.g. OL, ONLINE")
+                    .classes("flex-1 ml-auto")
+                    .bind_value_from(status_conf, "acceptable", lambda s: ", ".join(s or []))
+                    .bind_value_to(
+                        status_conf, "acceptable", lambda s: [i.strip().lower() for i in (s or "").split(",") if i.strip()]
+                    )
+                )
+                acceptable_input.bind_enabled_from(alert_status_checkbox, "value", backward=lambda checked: not checked)
+            ui.input("Alert Message", placeholder="Notification message...").classes("w-full").bind_value(
+                status_conf, "message"
             )
-            acceptable_input.bind_enabled_from(alert_status_checkbox, "value", backward=lambda checked: not checked)
-        ui.input("Alert Message", placeholder="Notification message...").classes("w-full").bind_value(
-            status_conf, "message"
-        )
 
 
 def formula_alert_rules(formula_alert_config: Dict) -> None:
