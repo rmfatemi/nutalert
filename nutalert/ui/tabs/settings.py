@@ -199,7 +199,11 @@ def notification_settings(config: Dict) -> None:
 
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
     config = state.config
-    config.setdefault("nut_server", {"host": "localhost", "port": 3493, "timeout": 5, "check_interval": 15})
+    config.setdefault("nut_server", {})
+    config["nut_server"].setdefault("host", "localhost")
+    config["nut_server"].setdefault("port", 3493)
+    config["nut_server"].setdefault("timeout", 5)
+    config["nut_server"].setdefault("check_interval", 15)
     config.setdefault("notifications", {"urls": [], "enabled": True, "cooldown": 60})
     config.setdefault("basic_alerts", {})
     config.setdefault("formula_alert", {"expression": "", "message": ""})
