@@ -1,7 +1,11 @@
+from typing import Dict, Optional
 from nutalert.utils import setup_logger
 
 
 logger = setup_logger(__name__)
+
+
+previous_ups_status: Dict[str, str] = {}
 
 
 def prepare_ups_env(nut_values):
@@ -78,7 +82,7 @@ def check_input_voltage(basic_alerts, env):
     return None
 
 
-def check_ups_status(basic_alerts, env):
+def check_ups_status(basic_alerts, env, ups_name=None):
     if not env["ups_status"]:
         return None
 
@@ -89,26 +93,24 @@ def check_ups_status(basic_alerts, env):
     acceptable_statuses = basic_alerts["ups_status"]["acceptable"]
     if env["ups_status"] not in acceptable_statuses:
         message = basic_alerts["ups_status"]["message"]
-        if _should_skip_due_to_unchanged_status(basic_alerts, env["ups_status"]):
+        if _should_skip_due_to_unchanged_status(basic_alerts, env["ups_status"], ups_name):
             return None
         return f"{message} ({env['ups_status']})"
     return None
 
 
-previous_ups_status: str = ""
-
-
-def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str) -> bool:
-    global previous_ups_status
+def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str, ups_name: Optional[str] = None) -> bool:
     if not _is_enabled_alert_when_status_changed(basic_alerts):
         return False
 
+    global previous_ups_status
+    key = ups_name or "default"
     logger.info("'alert_when_status_changed' is true")
-    if current_status == previous_ups_status:
+    if previous_ups_status.get(key) == current_status:
         logger.info(f"ups status unchanged: {current_status} (no alert)")
         return True
 
-    previous_ups_status = current_status
+    previous_ups_status[key] = current_status
     return False
 
 
@@ -116,7 +118,7 @@ def _is_enabled_alert_when_status_changed(basic_alerts) -> bool:
     return basic_alerts["ups_status"].get("alert_when_status_changed", False)
 
 
-def check_basic_alerts(config, env):
+def check_basic_alerts(config, env, ups_name=None):
     if "basic_alerts" not in config:
         logger.error("missing required config: basic_alerts")
         return ["config error: basic_alerts not specified"]
@@ -145,7 +147,7 @@ def check_basic_alerts(config, env):
             alerts_triggered.append(alert)
 
     if "ups_status" in basic_alerts and basic_alerts["ups_status"].get("enabled"):
-        alert = check_ups_status(basic_alerts, env)
+        alert = check_ups_status(basic_alerts, env, ups_name)
         if alert:
             alerts_triggered.append(alert)
 
@@ -190,7 +192,7 @@ def check_formula_alert(config, env):
         return True, f"{error_msg}"
 
 
-def should_alert(nut_values, config):
+def should_alert(nut_values, config, ups_name=None):
     env = prepare_ups_env(nut_values)
 
     if "alert_mode" not in config:
@@ -200,7 +202,7 @@ def should_alert(nut_values, config):
     alert_mode = config["alert_mode"]
 
     if alert_mode == "basic":
-        alerts_triggered = check_basic_alerts(config, env)
+        alerts_triggered = check_basic_alerts(config, env, ups_name)
 
         if alerts_triggered:
             return True, "" + "; ".join(alerts_triggered)
