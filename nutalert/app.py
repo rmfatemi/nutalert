@@ -4,8 +4,9 @@ from nicegui import ui, app
 from nutalert.ui.state import AppState
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.ui.header import build_header
-from nutalert.ui.tabs.dashboard import build_dashboard_tab
 from nutalert.ui.tabs.settings import build_settings_tab
+from nutalert.ui.tabs.dashboard import build_dashboard_tab
+
 
 state = AppState()
 
@@ -15,10 +16,9 @@ async def dashboard_page():
     ui.dark_mode(True)
     ui_elements: Dict[str, Any] = {}
 
-    build_header(ui_elements)
+    build_header(ui_elements, state)
 
     with ui.element("div").classes(f"w-full p-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
-        # Use the header's tabs for tab_panels
         with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)
@@ -29,7 +29,6 @@ async def dashboard_page():
 
 
 app.on_startup(state.poll_ups_data)
-
 app.add_static_files("/assets", "assets")
 
 
