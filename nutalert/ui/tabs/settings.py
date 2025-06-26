@@ -2,7 +2,7 @@ from nicegui import ui
 from typing import Dict, Any
 from pydantic import ValidationError
 
-from nutalert.utils import save_config
+from nutalert.config import save_config
 from nutalert.ui.models import AppConfig
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.notifier import NutAlertNotifier
@@ -28,9 +28,10 @@ def nut_server_settings(config: Dict) -> None:
     ui.label("NUT Server").classes("text-lg font-semibold")
     with ui.grid(columns=4).classes("w-full gap-4 pt-4"):
         ui.input("Host").bind_value(config["nut_server"], "host")
-        ui.number("Port", min=1, max=65535, step=1).bind_value(config["nut_server"], "port")
-        ui.number("Timeout (s)", min=1, step=1).bind_value(config["nut_server"], "timeout")
-        ui.number("Check Interval (s)", min=5, step=1).bind_value(config["nut_server"], "check_interval")
+        ui.number("Port", min=1, max=65535, step=1).props("type=text").bind_value(config["nut_server"], "port")
+        ui.number("Check Interval (s)", min=5, step=1).props("type=text").bind_value(
+            config["nut_server"], "check_interval"
+        )
 
 
 def alert_rules_settings(config: Dict) -> None:
@@ -65,7 +66,15 @@ def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max:
     alert_conf.setdefault("min", 110.0 if key == "input_voltage" else 0.0)
     alert_conf.setdefault("max", 130.0 if key == "input_voltage" else 0.0)
 
-    with ui.expansion(icon="rule").classes("w-full border rounded-md"):
+    icon_map = {
+        "battery_charge": "battery_full",
+        "runtime": "timer",
+        "load": "flash_on",
+        "input_voltage": "electrical_services",
+    }
+    icon = icon_map.get(key, "rule")
+
+    with ui.expansion(icon=icon).classes("w-full border rounded-md"):
         with ui.row().classes("items-center w-full"):
             ui.label(title).classes("text-lg font-semibold flex-grow")
             ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
@@ -95,7 +104,7 @@ def ups_status_alert_card(config: Dict) -> None:
         },
     )
     status_conf = config["ups_status"]
-    with ui.expansion(icon="power").classes("w-full border rounded-md"):
+    with ui.expansion(icon="settings_power").classes("w-full border rounded-md"):
         with ui.row().classes("items-center w-full"):
             ui.label("UPS Status").classes("text-lg font-semibold flex-grow")
             ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
@@ -111,7 +120,9 @@ def ups_status_alert_card(config: Dict) -> None:
                     .classes("flex-1 ml-auto")
                     .bind_value_from(status_conf, "acceptable", lambda s: ", ".join(s or []))
                     .bind_value_to(
-                        status_conf, "acceptable", lambda s: [i.strip().lower() for i in (s or "").split(",") if i.strip()]
+                        status_conf,
+                        "acceptable",
+                        lambda s: [i.strip().lower() for i in (s or "").split(",") if i.strip()],
                     )
                 )
                 acceptable_input.bind_enabled_from(alert_status_checkbox, "value", backward=lambda checked: not checked)
@@ -163,7 +174,7 @@ def notification_settings(config: Dict) -> None:
                     ).props(f'flat dense color={COLOR_THEME["primary"]}')
 
         with ui.row().classes("items-center gap-x-2"):
-            ui.number("Cooldown (s)").bind_value(config["notifications"], "cooldown")
+            ui.number("Cooldown (s)").props("type=text").bind_value(config["notifications"], "cooldown")
         ui.label(
             "Minimum number of seconds to wait between sending notifications. "
             "Prevents spamming alerts if conditions are met repeatedly."
@@ -190,25 +201,61 @@ def notification_settings(config: Dict) -> None:
             )
 
 
+def gauge_settings_section(ups_config: Dict) -> None:
+    ups_config.setdefault("gauge_settings", {})
+    gs = ups_config["gauge_settings"]
+    ui.label("Gauge Settings").classes("text-lg font-semibold mt-4")
+    with ui.column().classes("w-full gap-2"):
+        gs.setdefault("load", {})
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.label("Load (%)").classes("font-semibold min-w-[110px]")
+            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(gs["load"], "warn_threshold")
+            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(gs["load"], "high_threshold")
+        gs.setdefault("charge_remaining", {})
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.label("Charge Remaining (%)").classes("font-semibold min-w-[110px]")
+            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(
+                gs["charge_remaining"], "warn_threshold"
+            )
+            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(
+                gs["charge_remaining"], "high_threshold"
+            )
+        gs.setdefault("runtime", {})
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.label("Runtime (min)").classes("font-semibold min-w-[110px]")
+            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(gs["runtime"], "warn_threshold")
+            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(gs["runtime"], "high_threshold")
+        gs.setdefault("voltage", {})
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.label("Voltage (V)").classes("font-semibold min-w-[110px]")
+            ui.number("Nominal").props("type=text").classes("w-24").bind_value(gs["voltage"], "nominal")
+            ui.number("Warn Deviation").props("type=text").classes("w-24").bind_value(gs["voltage"], "warn_deviation")
+            ui.number("High Deviation").props("type=text").classes("w-24").bind_value(gs["voltage"], "high_deviation")
+
+
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
     config = state.config
-    config.setdefault("nut_server", {})
-    config["nut_server"].setdefault("host", "localhost")
-    config["nut_server"].setdefault("port", 3493)
-    config["nut_server"].setdefault("timeout", 5)
-    config["nut_server"].setdefault("check_interval", 15)
-    config.setdefault("notifications", {"urls": [], "enabled": True, "cooldown": 60})
-    config.setdefault("basic_alerts", {})
-    config.setdefault("formula_alert", {"expression": "", "message": ""})
-    config.setdefault("alert_mode", "basic")
+    ups_name = state.selected_ups
+    if "ups_devices" not in config:
+        config["ups_devices"] = {}
+    if ups_name not in config["ups_devices"]:
+        config["ups_devices"][ups_name] = {}
+    ups_config = config["ups_devices"][ups_name]
+    ups_config.setdefault("alert_mode", "basic")
+    ups_config.setdefault("basic_alerts", {})
+    ups_config.setdefault("formula_alert", {"expression": "", "message": ""})
+    ups_config.setdefault("gauge_settings", {})
 
     with ui.grid(columns=2).classes("w-full gap-4"):
         with ui.card().classes("w-full items-stretch gap-y-4"):
             settings_guide()
             nut_server_settings(config)
-            alert_rules_settings(config)
+            ui.separator()
+            alert_rules_settings(ups_config)
+            ui.separator()
+            gauge_settings_section(ups_config)
+            ui.separator()
             notification_settings(config)
-
             with ui.row().classes("w-full justify-start pt-4"):
                 ui.separator()
                 ui.button(
@@ -217,7 +264,6 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
                     icon="save",
                     color=COLOR_THEME["primary"],
                 )
-
         with ui.card().classes("w-full flex flex-col items-stretch gap-y-4"):
             ui.label("Live Logs").classes("text-lg font-semibold self-center")
             ui_elements["log_view"] = ui.log(max_lines=1000).classes(

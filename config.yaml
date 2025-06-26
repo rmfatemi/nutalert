@@ -1,97 +1,55 @@
-###############################################################################
-# nut server configuration
-###############################################################################
-
-# these settings define the connection parameters to contact the nut (ups) server
 nut_server:
-  host: "10.0.10.101"            # ip address of the nut server
-  port: 3493                     # port used for connection
-  timeout: 3                     # socket connection timeout in seconds
-
-###############################################################################
-# notifications configuration
-###############################################################################
-
-# configure notification methods below.
+  host: 10.0.10.101
+  port: 3493
+  check_interval: 15
 notifications:
-  enabled: true                  # set to false to disable all notifications
-  cooldown: 60                   # time to wait (s) between sending new alerts
-  # apprise is used for all notifications
-  # for more information on how to construct apprise urls for over 100 services,
-  # see: https://github.com/caronc/apprise
-  urls:
-    - url: "tgram://123456789:ABCDEF1234567890/ChatID"
-      enabled: false
-    - url: "discord://your-discord-webhook-id/your-discord-webhook-token"
-      enabled: false
-    - url: "slack://your-slack-token-a/your-slack-token-b/your-slack-token-c"
-      enabled: false
-
-###############################################################################
-# check interval and alert mode
-###############################################################################
-
-# how often to check the ups data (in seconds)
-check_interval: 15
-
-# choose alert mode: "basic" or "formula"
-alert_mode: "basic"
-
-###############################################################################
-# basic alert confuguration - simple threshold-based alerts
-###############################################################################
-
-# note: even if you opt to use formula mode, it is recommended to set the accetable values in basic
-# mode as these values are used to create better thresholds for dashboard gauages (purely cosmetic)
-
-# if ANY enabled alert condition fails, an alert will be triggered (using OR logic)
-basic_alerts:
-  # battery charge alert
-  battery_charge:
-    enabled: true
-    min: 90                              # minimum acceptable battery charge (%)
-    message: "UPS battery charge below minimum threshold"
-  # runtime alert - simple threshold check
-  runtime:
-    enabled: true
-    min: 15                              # minimum acceptable runtime in minutes
-    message: "UPS runtime below minimum threshold"
-  # load alert - separate from runtime
-  load:
-    enabled: true
-    max: 50                              # maximum acceptable load percentage
-    message: "UPS load exceeds maximum threshold"
-  # voltage alert
-  input_voltage:
-    enabled: false
-    min: 110.0                           # minimum acceptable input voltage (volts)
-    max: 130.0                           # maximum acceptable input voltage (volts)
-    message: "UPS input voltage outside acceptable range"
-  # status alert
-  ups_status:
-    enabled: true
-    acceptable: ["ol", "online"]         # acceptable ups operational statuses
-    alert_when_status_changed: false     # enable if you only want to send an alert when the ups status has changed
-    message: "UPS status not in acceptable list"
-
-###############################################################################
-# advanced alert configuration - formula-based alerts
-###############################################################################
-
-# formula mode: create a custom formula using ups data
-# available variables for your formula:
-#   ups_load - current ups load percentage
-#   battery_charge - current battery charge percentage
-#   actual_runtime_minutes - current battery runtime in minutes
-#   battery_voltage - current battery voltage
-#   input_voltage - current input voltage
-#   ups_status - current ups status string (lowercase)
-
-# your formula should return True to trigger an alert
-# examples:
-# - simple condition check: "battery_charge < 90 or ups_status != 'ol'"
-# - load-based runtime: "actual_runtime_minutes < (60 if ups_load <= 15 else (30 if ups_load >= 50 else 60 - (ups_load * 0.6)))"
-# - complex calculation: "(battery_charge / 100.0) * (battery_voltage / input_voltage) * (actual_runtime_minutes / 60) < 0.5"
-formula_alert:
-  expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
-  message: "UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"
+  enabled: true
+  cooldown: 60
+  urls: []
+ups_devices:
+  ups:
+    alert_mode: basic
+    gauge_settings:
+      load:
+        warn_threshold: 80
+        high_threshold: 100
+      charge_remaining:
+        warn_threshold: 35
+        high_threshold: 15
+      runtime:
+        warn_threshold: 15
+        high_threshold: 5
+      voltage:
+        nominal: 120
+        warn_deviation: 10
+        high_deviation: 15
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 90
+        message: UPS battery charge below minimum threshold
+      runtime:
+        enabled: true
+        min: 15
+        message: UPS runtime below minimum threshold
+      load:
+        enabled: true
+        max: 50
+        message: UPS load exceeds maximum threshold
+      input_voltage:
+        enabled: false
+        min: 110.0
+        max: 130.0
+        message: UPS input voltage outside acceptable range
+      ups_status:
+        enabled: true
+        acceptable:
+        - ol
+        - online
+        alert_when_status_changed: false
+        message: UPS status not in acceptable list
+    formula_alert:
+      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load
+        > 20
+      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
+        mins'

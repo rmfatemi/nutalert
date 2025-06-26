@@ -1,9 +1,9 @@
 from nicegui import ui
 
+
 def settings_guide():
     with ui.expansion("Settings Guide", icon="help").classes("w-full mb-4 border rounded-md"):
-        ui.markdown(
-            """
+        ui.markdown("""
 - **NUT Server**
     - `Host`: IP address or hostname of your NUT (Network UPS Tools) server.
     - `Port`: Port number for the NUT server (default: 3493).
@@ -13,7 +13,8 @@ def settings_guide():
 - **Notifications**
     - `Enable`: Toggle to enable or disable all notifications.
     - `Cooldown`: Minimum seconds between sending new alerts.
-    - `URLs`: List of Apprise-compatible notification URLs. [See Apprise documentation](https://github.com/caronc/apprise) for supported services.
+    - `URLs`: List of Apprise-compatible notification URLs. [See Apprise documentation]
+      (https://github.com/caronc/apprise) for supported services.
     - Each URL can be enabled/disabled individually.
     - Use "Add URL" to add a new notification method.
     - "Test Alerts" sends a test notification to all enabled URLs.
@@ -30,8 +31,8 @@ def settings_guide():
     - **Formula Alert**:
         - Write a custom Python expression using UPS data variables.
         - If the formula evaluates to `True`, an alert is triggered.
-        - Available variables: `ups_load`, `battery_charge`, `actual_runtime_minutes`, `battery_voltage`, `input_voltage`, `ups_status`.
+        - Available variables: `ups_load`, `battery_charge`, `actual_runtime_minutes`,
+          `battery_voltage`, `input_voltage`, `ups_status`.
         - Example: `battery_charge < 90 or ups_status != 'ol'`
         - `Message`: Custom notification message, can use variables (e.g., `{ups_load}`).
-            """
-        )
+            """)
