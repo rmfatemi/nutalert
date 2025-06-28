@@ -8,12 +8,12 @@ PORT = 3493
 POLL_FREQ_SECONDS = 2
 
 UPS_DATA = {
-    "desktop_apc": {
+    "apc": {
         "battery.charge": "100",
         "battery.charge.low": "10",
         "battery.charge.warning": "50",
-        "battery.date": "2023/01/10",
-        "battery.mfr.date": "2022/11/05",
+        "battery.date": "2025/01/10",
+        "battery.mfr.date": "2024/11/05",
         "battery.runtime": "2856",
         "battery.runtime.low": "120",
         "battery.type": "PbAc",
@@ -45,9 +45,9 @@ UPS_DATA = {
         "ups.delay.shutdown": "20",
         "ups.firmware": "951.e4 .D",
         "ups.firmware.aux": "e4",
-        "ups.load": "14",
+        "ups.load": "15",
         "ups.mfr": "American Power Conversion",
-        "ups.mfr.date": "2022/11/05",
+        "ups.mfr.date": "2024/11/05",
         "ups.model": "Back-UPS RS 1350MS",
         "ups.productid": "0002",
         "ups.realpower.nominal": "810",
@@ -58,12 +58,12 @@ UPS_DATA = {
         "ups.timer.shutdown": "-1",
         "ups.vendorid": "051d"
     },
-    "server_cyberpower": {
+    "cyberpower": {
         "battery.charge": "100",
         "battery.charge.low": "20",
         "battery.charge.warning": "40",
-        "battery.date": "2024/05/20",
-        "battery.mfr.date": "2024/03/15",
+        "battery.date": "2026/05/20",
+        "battery.mfr.date": "2026/03/15",
         "battery.runtime": "3600",
         "battery.runtime.low": "300",
         "battery.type": "PbAc",
@@ -95,9 +95,9 @@ UPS_DATA = {
         "ups.delay.shutdown": "30",
         "ups.firmware": "CR007.e1.1",
         "ups.firmware.aux": "e1",
-        "ups.load": "25",
+        "ups.load": "30",
         "ups.mfr": "CyberPower Systems",
-        "ups.mfr.date": "2024/03/15",
+        "ups.mfr.date": "2026/03/15",
         "ups.model": "CP1500PFCLCD",
         "ups.productid": "0501",
         "ups.realpower.nominal": "900",
@@ -108,12 +108,12 @@ UPS_DATA = {
         "ups.timer.shutdown": "-1",
         "ups.vendorid": "0764"
     },
-    "rack_eaton_220v": {
+    "eaton220": {
         "battery.charge": "100",
         "battery.charge.low": "15",
         "battery.charge.warning": "30",
-        "battery.date": "2025/02/01",
-        "battery.mfr.date": "2025/01/15",
+        "battery.date": "2027/02/01",
+        "battery.mfr.date": "2027/01/15",
         "battery.runtime": "4500",
         "battery.runtime.low": "600",
         "battery.type": "Li-Ion",
@@ -147,7 +147,7 @@ UPS_DATA = {
         "ups.firmware.aux": "17",
         "ups.load": "55",
         "ups.mfr": "Eaton",
-        "ups.mfr.date": "2025/01/15",
+        "ups.mfr.date": "2027/01/15",
         "ups.model": "5P 1550 R 220V",
         "ups.productid": "ffff",
         "ups.realpower.nominal": "1100",
@@ -159,13 +159,15 @@ UPS_DATA = {
         "ups.vendorid": "0463"
     }
 }
+INITIAL_RUNTIMES = {name: int(data['battery.runtime']) for name, data in UPS_DATA.items()}
 
 def update_dynamic_values():
     global UPS_DATA
     while True:
         for ups_name, data in UPS_DATA.items():
             load = int(data['ups.load'])
-            data['ups.load'] = str(load + random.randint(-1, 1))
+            new_load = load + random.randint(-2, 2)
+            data['ups.load'] = str(min(100, max(5, new_load)))
 
             nominal_voltage = int(data['input.voltage.nominal'])
             if nominal_voltage == 120:
@@ -173,31 +175,35 @@ def update_dynamic_values():
             else:
                 data['input.voltage'] = f"{random.uniform(218.0, 222.0):.1f}"
 
-            if data['ups.status'] == 'OB':
+            if data['ups.status'] == 'OB' or data['ups.status'] == 'LB':
                 charge = int(data['battery.charge'])
                 if charge > 0:
                     charge -= 1
                     data['battery.charge'] = str(charge)
                     runtime = int(float(data['battery.runtime']))
-                    data['battery.runtime'] = str(int(runtime * 0.95))
-                    data['battery.voltage'] = f"{float(data['battery.voltage']) - 0.1:.1f}"
+                    data['battery.runtime'] = str(max(0, int(runtime * 0.95)))
+                    data['battery.voltage'] = f"{float(data['battery.voltage']) - 0.05:.2f}"
                 if charge <= int(data['battery.charge.low']):
                     data['ups.status'] = 'LB'
             
             elif data['ups.status'] == 'OL':
                 charge = int(data['battery.charge'])
                 if charge < 100:
-                    charge += 1
+                    charge = min(100, charge + 1)
                     data['battery.charge'] = str(charge)
-                    runtime = int(float(data['battery.runtime']))
-                    data['battery.runtime'] = str(int(runtime * 1.02))
+                    
+                    max_runtime = INITIAL_RUNTIMES[ups_name]
+                    current_runtime = int(data['battery.runtime'])
+                    data['battery.runtime'] = str(min(max_runtime, int(current_runtime * 1.05)))
                 
                 nominal_batt_volt = float(data['battery.voltage.nominal'])
+                charge_volt_cap = nominal_batt_volt * 1.14
                 current_batt_volt = float(data['battery.voltage'])
-                if current_batt_volt < nominal_batt_volt * 1.14: # Charging voltage
-                     data['battery.voltage'] = f"{current_batt_volt + 0.05:.1f}"
+                if current_batt_volt < charge_volt_cap:
+                     new_volt = min(charge_volt_cap, current_batt_volt + 0.05)
+                     data['battery.voltage'] = f"{new_volt:.2f}"
 
-            if random.randint(1, 200) == 1:
+            if random.randint(1, 200) == 1 and data['ups.status'] == 'OL':
                 data['ups.status'] = 'OB'
                 data['input.transfer.reason'] = 'simulated power loss'
 
