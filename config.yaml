@@ -5,9 +5,11 @@ nut_server:
 notifications:
   enabled: true
   cooldown: 60
-  urls: []
+  urls:
+  - url: test
+    enabled: true
 ups_devices:
-  desktop_apc:
+  apc:
     alert_mode: basic
     gauge_settings:
       load:
@@ -53,11 +55,11 @@ ups_devices:
         > 20
       message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
         mins'
-  server_cyberpower:
+  cyber:
     alert_mode: basic
     gauge_settings:
       load:
-        warn_threshold: 80
+        warn_threshold: 20.0
         high_threshold: 100
       charge_remaining:
         warn_threshold: 35
@@ -99,7 +101,7 @@ ups_devices:
         > 20
       message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
         mins'
-  rack_eaton_220v:
+  eaton220:
     alert_mode: basic
     gauge_settings:
       load:
