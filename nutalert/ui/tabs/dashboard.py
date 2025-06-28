@@ -1,6 +1,7 @@
-from typing import Dict, Any
-from nicegui import ui
 import plotly.graph_objects as go
+
+from nicegui import ui
+from typing import Dict, Any
 
 from nutalert.ui.theme import COLOR_THEME
 
@@ -121,8 +122,8 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
     voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
 
-    with ui.column().classes("w-full gap-y-4"):
-        with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full gap-4"):
+    with ui.column().classes("w-full"):
+        with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full"):
             ui_elements["load_plot"] = ui.plotly(
                 create_dial_gauge(
                     float(ups_values.get("ups.load", 0.0)),

@@ -53,7 +53,7 @@ DEFAULT_UPS_CONFIG: Dict[str, Any] = {
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "nut_server": {
-        "host": "10.0.10.101",
+        "host": "10.0.10.220",
         "port": 3493,
         "check_interval": 15,
     },
