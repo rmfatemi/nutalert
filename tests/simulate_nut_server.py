@@ -176,37 +176,56 @@ def update_dynamic_values():
             else:
                 data["input.voltage"] = f"{random.uniform(218.0, 222.0):.1f}"
 
-            if data["ups.status"] == "OB" or data["ups.status"] == "LB":
-                charge = int(data["battery.charge"])
-                if charge > 0:
-                    charge -= 1
-                    data["battery.charge"] = str(charge)
-                    runtime = int(float(data["battery.runtime"]))
-                    data["battery.runtime"] = str(max(0, int(runtime * 0.95)))
-                    data["battery.voltage"] = f"{float(data['battery.voltage']) - 0.05:.2f}"
-                if charge <= int(data["battery.charge.low"]):
+            status = data["ups.status"]
+            max_runtime = INITIAL_RUNTIMES[ups_name]
+            nominal_batt_volt = float(data["battery.voltage.nominal"])
+            charge_volt_cap = nominal_batt_volt * 1.14
+
+            if status == "OB" or status == "LB":
+                current_runtime = int(data["battery.runtime"])
+                new_runtime = max(0, current_runtime - POLL_FREQ_SECONDS)
+                data["battery.runtime"] = str(new_runtime)
+
+                new_charge = 0
+                if max_runtime > 0:
+                    new_charge = int((new_runtime / max_runtime) * 100)
+                data["battery.charge"] = str(new_charge)
+
+                volt_range = charge_volt_cap - nominal_batt_volt
+                new_voltage = nominal_batt_volt + (volt_range * (new_charge / 100.0))
+                data["battery.voltage"] = f"{new_voltage:.2f}"
+
+                if new_charge <= int(data["battery.charge.low"]):
                     data["ups.status"] = "LB"
+                else:
+                    data["ups.status"] = "OB"
 
-            elif data["ups.status"] == "OL":
-                charge = int(data["battery.charge"])
-                if charge < 100:
-                    charge = min(100, charge + 1)
-                    data["battery.charge"] = str(charge)
+                if random.randint(1, 150) == 1:
+                    data["ups.status"] = "OL"
+                    data["input.transfer.reason"] = "input voltage restored"
 
-                    max_runtime = INITIAL_RUNTIMES[ups_name]
-                    current_runtime = int(data["battery.runtime"])
-                    data["battery.runtime"] = str(min(max_runtime, int(current_runtime * 1.05)))
+            elif status == "OL":
+                current_runtime = int(data["battery.runtime"])
+                if current_runtime < max_runtime:
+                    new_runtime = min(max_runtime, current_runtime + 1)
+                    data["battery.runtime"] = str(new_runtime)
 
-                nominal_batt_volt = float(data["battery.voltage.nominal"])
-                charge_volt_cap = nominal_batt_volt * 1.14
-                current_batt_volt = float(data["battery.voltage"])
-                if current_batt_volt < charge_volt_cap:
-                    new_volt = min(charge_volt_cap, current_batt_volt + 0.05)
-                    data["battery.voltage"] = f"{new_volt:.2f}"
+                    new_charge = 0
+                    if max_runtime > 0:
+                        new_charge = int((new_runtime / max_runtime) * 100)
+                    data["battery.charge"] = str(new_charge)
 
-            if random.randint(1, 200) == 1 and data["ups.status"] == "OL":
-                data["ups.status"] = "OB"
-                data["input.transfer.reason"] = "simulated power loss"
+                    volt_range = charge_volt_cap - nominal_batt_volt
+                    new_voltage = nominal_batt_volt + (volt_range * (new_charge / 100.0))
+                    data["battery.voltage"] = f"{new_voltage:.2f}"
+                else:
+                    data["battery.runtime"] = str(max_runtime)
+                    data["battery.charge"] = "100"
+                    data["battery.voltage"] = f"{charge_volt_cap:.2f}"
+
+                if random.randint(1, 400) == 1:
+                    data["ups.status"] = "OB"
+                    data["input.transfer.reason"] = "simulated power loss"
 
         time.sleep(POLL_FREQ_SECONDS)
 
