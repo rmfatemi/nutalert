@@ -27,13 +27,12 @@ class BasicAlerts(BaseModel):
 class NutServerConfig(BaseModel):
     host: str
     port: int = Field(gt=0, le=65535)
-    timeout: int = Field(gt=0)
     check_interval: int = Field(ge=5)
 
 
 class FormulaAlert(BaseModel):
-    expression: str
     message: str
+    expression: str
 
 
 class NotificationsConfig(BaseModel):
@@ -43,8 +42,6 @@ class NotificationsConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
+    ups_devices: Dict[str, Any]
     nut_server: NutServerConfig
-    alert_mode: str
-    basic_alerts: Optional[BasicAlerts] = None
-    formula_alert: Optional[FormulaAlert] = None
     notifications: Optional[NotificationsConfig] = None

@@ -1,5 +1,5 @@
 nut_server:
-  host: 10.0.10.101
+  host: 127.0.0.1
   port: 3493
   check_interval: 15
 notifications:
@@ -7,7 +7,102 @@ notifications:
   cooldown: 60
   urls: []
 ups_devices:
-  ups:
+  desktop_apc:
+    alert_mode: basic
+    gauge_settings:
+      load:
+        warn_threshold: 23.0
+        high_threshold: 100
+      charge_remaining:
+        warn_threshold: 35
+        high_threshold: 15
+      runtime:
+        warn_threshold: 15
+        high_threshold: 5
+      voltage:
+        nominal: 120
+        warn_deviation: 10
+        high_deviation: 15
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 70.0
+        message: UPS battery charge below minimum threshold
+        max: 0.0
+      runtime:
+        enabled: true
+        min: 15
+        message: UPS runtime below minimum threshold
+        max: 0.0
+      load:
+        enabled: true
+        max: 50
+        message: UPS load exceeds maximum threshold
+        min: 0.0
+      input_voltage:
+        enabled: false
+        min: 110.0
+        max: 130.0
+        message: UPS input voltage outside acceptable range
+      ups_status:
+        enabled: true
+        acceptable:
+        - ol
+        - online
+        alert_when_status_changed: false
+        message: UPS status not in acceptable list
+    formula_alert:
+      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load
+        > 20
+      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
+        mins'
+  server_cyberpower:
+    alert_mode: basic
+    gauge_settings:
+      load:
+        warn_threshold: 80
+        high_threshold: 100
+      charge_remaining:
+        warn_threshold: 35
+        high_threshold: 15
+      runtime:
+        warn_threshold: 15
+        high_threshold: 5
+      voltage:
+        nominal: 120
+        warn_deviation: 10
+        high_deviation: 15
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 90
+        message: UPS battery charge below minimum threshold
+      runtime:
+        enabled: true
+        min: 15
+        message: UPS runtime below minimum threshold
+      load:
+        enabled: true
+        max: 50
+        message: UPS load exceeds maximum threshold
+      input_voltage:
+        enabled: false
+        min: 110.0
+        max: 130.0
+        message: UPS input voltage outside acceptable range
+      ups_status:
+        enabled: true
+        acceptable:
+        - ol
+        - online
+        alert_when_status_changed: false
+        message: UPS status not in acceptable list
+    formula_alert:
+      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load
+        > 20
+      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
+        mins'
+  rack_eaton_220v:
     alert_mode: basic
     gauge_settings:
       load:

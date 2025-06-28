@@ -1,5 +1,6 @@
 import os
 import yaml
+import copy
 from typing import Dict, Any
 
 from nutalert.fetcher import fetch_nut_ups_names
@@ -53,7 +54,7 @@ DEFAULT_UPS_CONFIG: Dict[str, Any] = {
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "nut_server": {
-        "host": "10.0.10.220",
+        "host": "127.0.0.1",
         "port": 3493,
         "check_interval": 15,
     },
@@ -67,34 +68,46 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
 def load_config() -> Dict[str, Any]:
-    if not os.path.exists(CONFIG_PATH):
-        config = DEFAULT_CONFIG.copy()
-        ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
-        for ups_name in ups_names:
-            config["ups_devices"][ups_name] = DEFAULT_UPS_CONFIG.copy()
-        save_config(config)
-        return config
-    with open(CONFIG_PATH, "r") as f:
-        config = yaml.safe_load(f)
-    if not isinstance(config, dict):
-        config = {}
-    config = config  # type: ignore
-    ups_names = fetch_nut_ups_names(
-        config.get("nut_server", {}).get("host", ""), config.get("nut_server", {}).get("port", 3493)
-    )
+    config = copy.deepcopy(DEFAULT_CONFIG)
+    config_file_exists = os.path.exists(CONFIG_PATH)
+    if config_file_exists:
+        try:
+            with open(CONFIG_PATH, "r") as f:
+                loaded = yaml.safe_load(f)
+            if isinstance(loaded, dict):
+                for k, v in loaded.items():
+                    if k == "ups_devices" and isinstance(v, dict):
+                        continue
+                    config[k] = v
+                if "ups_devices" in loaded and isinstance(loaded["ups_devices"], dict):
+                    config["ups_devices"] = copy.deepcopy(loaded["ups_devices"])
+        except Exception:
+            pass  # Ignore errors, fall back to defaults
+    # Always ensure ups_devices is a dict
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
-    for ups_name in ups_names:
-        if ups_name not in config["ups_devices"]:
-            config["ups_devices"][ups_name] = DEFAULT_UPS_CONFIG.copy()
-    save_config(config)
+    # Discover UPS devices
+    ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
+    changed = False
+    if ups_names:
+        for ups_name in ups_names:
+            if ups_name not in config["ups_devices"]:
+                config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
+                changed = True
+    # Do NOT remove missing devices, and do NOT clear ups_devices if none found
+    if changed or not config_file_exists:
+        save_config(config)
     return config
 
 
 def save_config(config: Dict[str, Any]) -> str:
+    class NoAliasDumper(yaml.SafeDumper):
+        def ignore_aliases(self, data):
+            return True
+
     try:
         with open(CONFIG_PATH, "w") as f:
-            yaml.safe_dump(config, f, sort_keys=False)
+            yaml.dump(config, f, sort_keys=False, Dumper=NoAliasDumper)
         return "config saved successfully."
     except Exception as e:
         return f"failed to save config: {e}"
