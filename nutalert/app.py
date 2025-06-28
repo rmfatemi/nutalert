@@ -22,6 +22,9 @@ async def dashboard_page():
     def handle_selection(selected_ups):
         state.selected_ups = selected_ups
         ups_selector_row.refresh()
+        settings_tab = ui_elements.get("settings_tab")
+        if settings_tab is not None:
+            settings_tab.refresh()
 
     ups_selector_row(state, handle_selection)
 
@@ -30,7 +33,10 @@ async def dashboard_page():
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)
             with ui.tab_panel("Configuration"):
-                build_settings_tab(state, ui_elements)
+                @ui.refreshable
+                def settings_tab():
+                    build_settings_tab(state, ui_elements)
+                ui_elements["settings_tab"] = settings_tab()
 
         ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
 
