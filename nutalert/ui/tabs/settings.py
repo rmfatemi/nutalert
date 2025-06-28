@@ -35,33 +35,71 @@ def nut_server_settings(config: Dict) -> None:
         )
 
 
-def alert_rules_settings(config: Dict) -> None:
-    ui.label("Alert Rules").classes("text-xl font-semibold")
-    with ui.row().classes("items-center mt-2"):
-        ui.label("Alert Mode:").classes("mr-4 font-semibold")
-        alert_mode_radio = (
-            ui.radio(["basic", "formula"], value=config.get("alert_mode", "basic"))
-            .bind_value(config, "alert_mode")
-            .props(f'inline color={COLOR_THEME["primary"]}')
-        )
-    with ui.column().classes("w-full").bind_visibility_from(alert_mode_radio, "value", value="basic"):
-        basic_alert_rules(config["basic_alerts"])
-    with ui.column().classes("w-full").bind_visibility_from(alert_mode_radio, "value", value="formula"):
-        formula_alert_rules(config["formula_alert"])
+def alert_rules_settings(ups_config: Dict) -> None:
+    ups_config.setdefault("alert_mode", "basic")
+
+    @ui.refreshable
+    def alert_mode_switcher():
+        def set_mode(mode: str):
+            ups_config["alert_mode"] = mode
+            alert_mode_switcher.refresh()
+
+        with ui.row().classes("items-center mt-2"):
+            ui.label("Alert Mode:").classes("mr-4 font-semibold")
+            with ui.row().classes("items-center segmented-control"):
+                basic_class = "bg-primary text-white" if ups_config["alert_mode"] == "basic" else ""
+                formula_class = "bg-primary text-white" if ups_config["alert_mode"] == "formula" else ""
+
+                ui.button("Basic", on_click=lambda: set_mode("basic")).props(
+                    f'flat color={COLOR_THEME["primary"]}'
+                ).classes(f"rounded-l-lg {basic_class}")
+
+                ui.button("Formula", on_click=lambda: set_mode("formula")).props(
+                    f'flat color={COLOR_THEME["primary"]}'
+                ).classes(f"rounded-r-lg {formula_class}")
+
+    alert_mode_switcher()
+
+    with ui.column().classes("w-full").bind_visibility_from(ups_config, "alert_mode", value="basic"):
+        basic_alert_rules(ups_config)
+    with ui.column().classes("w-full").bind_visibility_from(ups_config, "alert_mode", value="formula"):
+        formula_alert_rules(ups_config.get("formula_alert", {}))
 
 
-def basic_alert_rules(basic_alerts_config: Dict) -> None:
+def basic_alert_rules(ups_config: Dict) -> None:
+    basic_alerts_config = ups_config.get("basic_alerts", {})
+    gauge_config = ups_config.get("gauge_settings", {})
+
     with ui.column().classes("w-full gap-4 mt-4"):
-        basic_alert_card(basic_alerts_config, "battery_charge", "Battery Charge", has_min=True, has_max=False)
-        basic_alert_card(basic_alerts_config, "runtime", "Battery Runtime", has_min=True, has_max=False)
-        basic_alert_card(basic_alerts_config, "load", "UPS Load", has_min=False, has_max=True)
-        basic_alert_card(basic_alerts_config, "input_voltage", "Input Voltage", has_min=True, has_max=True)
+        basic_alert_card(
+            basic_alerts_config, gauge_config, "battery_charge", "Battery Charge", has_min=True, has_max=False
+        )
+        basic_alert_card(basic_alerts_config, gauge_config, "runtime", "Battery Runtime", has_min=True, has_max=False)
+        basic_alert_card(basic_alerts_config, gauge_config, "load", "UPS Load", has_min=False, has_max=True)
+        basic_alert_card(
+            basic_alerts_config, gauge_config, "input_voltage", "Input Voltage", has_min=True, has_max=True
+        )
         ups_status_alert_card(basic_alerts_config)
 
 
-def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max: bool) -> None:
-    config.setdefault(key, {})
-    alert_conf = config[key]
+def _create_gauge_settings(gauge_conf: Dict, key: str):
+    ui.separator().classes("my-3")
+    with ui.column().classes("w-full"):
+        ui.label("Gauge Thresholds").classes("text-md font-semibold pb-2")
+        with ui.row().classes("w-full items-center gap-x-4"):
+            if key == "voltage":
+                ui.number("Nominal").props("type=text").classes("w-28").bind_value(gauge_conf, "nominal")
+                ui.number("Warn Deviation").props("type=text").classes("w-28").bind_value(gauge_conf, "warn_deviation")
+                ui.number("High Deviation").props("type=text").classes("w-28").bind_value(gauge_conf, "high_deviation")
+            else:
+                ui.number("Warn Threshold").props("type=text").classes("w-32").bind_value(gauge_conf, "warn_threshold")
+                ui.number("High Threshold").props("type=text").classes("w-32").bind_value(gauge_conf, "high_threshold")
+
+
+def basic_alert_card(
+    basic_alerts_config: Dict, gauge_config: Dict, key: str, title: str, has_min: bool, has_max: bool
+) -> None:
+    alert_conf = basic_alerts_config.setdefault(key, {})
     alert_conf.setdefault("enabled", False)
     alert_conf.setdefault("message", "")
     if has_min:
@@ -77,27 +115,40 @@ def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max:
     }
     icon = icon_map.get(key, "rule")
 
-    with ui.expansion(icon=icon).classes("w-full border rounded-md"):
+    with ui.expansion(title, icon=icon).classes("w-full border rounded-md"):
         with ui.row().classes("items-center w-full"):
-            ui.label(title).classes("text-lg font-semibold flex-grow")
+            ui.space()
             ui.switch("Enabled").bind_value(alert_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
+
         with ui.column().bind_visibility_from(alert_conf, "enabled"):
             with ui.row().classes("w-full items-center"):
                 if has_min and not has_max:
-                    ui.number("Minimum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "min")
+                    ui.number("Alert if below", format="%.1f").classes("flex-grow").bind_value(alert_conf, "min")
                 if has_max and not has_min:
-                    ui.number("Maximum", format="%.1f").classes("flex-grow").bind_value(alert_conf, "max")
+                    ui.number("Alert if above", format="%.1f").classes("flex-grow").bind_value(alert_conf, "max")
                 if has_min and has_max:
-                    with ui.row().classes("w-full no-wrap"):
-                        ui.number("Min", format="%.1f").bind_value(alert_conf, "min")
-                        ui.number("Max", format="%.1f").bind_value(alert_conf, "max")
+                    with ui.row().classes("w-full no-wrap items-center"):
+                        ui.number("Alert if below", format="%.1f").bind_value(alert_conf, "min")
+                        ui.number("or above", format="%.1f").bind_value(alert_conf, "max")
+
             ui.input("Alert Message", placeholder="Notification message...").classes("w-full pt-2").bind_value(
                 alert_conf, "message"
             )
 
+            gauge_key_map = {
+                "battery_charge": "charge_remaining",
+                "runtime": "runtime",
+                "load": "load",
+                "input_voltage": "voltage",
+            }
+            gauge_key = gauge_key_map.get(key)
+            if gauge_key:
+                gauge_conf_section = gauge_config.setdefault(gauge_key, {})
+                _create_gauge_settings(gauge_conf_section, gauge_key)
+
 
 def ups_status_alert_card(config: Dict) -> None:
-    config.setdefault(
+    status_conf = config.setdefault(
         "ups_status",
         {
             "enabled": False,
@@ -106,11 +157,12 @@ def ups_status_alert_card(config: Dict) -> None:
             "alert_when_status_changed": False,
         },
     )
-    status_conf = config["ups_status"]
-    with ui.expansion(icon="settings_power").classes("w-full border rounded-md"):
+
+    with ui.expansion("UPS Status", icon="settings_power").classes("w-full border rounded-md"):
         with ui.row().classes("items-center w-full"):
-            ui.label("UPS Status").classes("text-lg font-semibold flex-grow")
+            ui.space()
             ui.switch("Enabled").bind_value(status_conf, "enabled").props(f'color={COLOR_THEME["primary"]}')
+
         with ui.column().bind_visibility_from(status_conf, "enabled"):
             with ui.row().classes("w-full items-center gap-x-2"):
                 alert_status_checkbox = (
@@ -139,101 +191,64 @@ def formula_alert_rules(formula_alert_config: Dict) -> None:
         formula_alert_config, "expression"
     )
     ui.label(
-        "Enter a valid Python condition (boolean expression) that evaluates to True or False. "
-        "You can use the following variables: battery_charge, ups_status, ups_load, actual_runtime_minutes, "
-        "battery_voltage, input_voltage. Example: battery_charge < 90 or ups_status != 'ol'."
+        "Enter a valid Python condition. Available variables: battery_charge, ups_status, ups_load, "
+        "actual_runtime_minutes, battery_voltage, input_voltage."
     ).classes("text-xs text-gray-500 mb-2")
     ui.input(label="Alert Message", placeholder="e.g. Load is {ups_load}%").classes("w-full").bind_value(
         formula_alert_config, "message"
     )
-    ui.label(
-        "You can use Python expressions and reference the same variables in your message. "
-        "For example: f'Load is {ups_load}%' or 'Status: {ups_status}'."
-    ).classes("text-xs text-gray-500 mb-2")
+    ui.label("You can use f-strings and reference the same variables in your message.").classes(
+        "text-xs text-gray-500 mb-2"
+    )
 
 
 def notification_settings(config: Dict) -> None:
-    with ui.row().classes("w-full justify-between items-center"):
-        ui.label("Notifications").classes("text-lg font-semibold")
-        enable_switch = (
+    with ui.expansion("Notifications", icon="notifications").classes("w-full border rounded-md"):
+        with ui.row().classes("items-center w-full"):
+            ui.space()
             ui.switch("Enable").bind_value(config["notifications"], "enabled").props(f'color={COLOR_THEME["primary"]}')
-        )
 
-    with ui.column().classes("w-full").bind_visibility_from(enable_switch, "value"):
+        with ui.column().classes("w-full").bind_visibility_from(config["notifications"], "enabled"):
 
-        @ui.refreshable
-        def url_list() -> None:
-            if not config["notifications"]["urls"]:
-                ui.label("No notification URLs added.").classes("text-xs text-gray-500 self-center py-4")
-            for url_obj in config["notifications"]["urls"]:
-                with ui.row().classes("w-full items-center gap-x-2"):
-                    ui.input("Apprise URL", placeholder="e.g., tgram://...").classes("flex-grow").bind_value(
-                        url_obj, "url"
-                    )
-                    ui.switch().props(f'dense color={COLOR_THEME["primary"]}').bind_value(url_obj, "enabled")
-                    ui.button(
-                        icon="delete",
-                        on_click=lambda u=url_obj: (config["notifications"]["urls"].remove(u), url_list.refresh()),
-                    ).props(f'flat dense color={COLOR_THEME["primary"]}')
+            @ui.refreshable
+            def url_list() -> None:
+                if not config["notifications"]["urls"]:
+                    ui.label("No notification URLs added.").classes("text-xs text-gray-500 self-center py-4")
+                for url_obj in config["notifications"]["urls"]:
+                    with ui.row().classes("w-full items-center gap-x-2"):
+                        ui.input("Apprise URL", placeholder="e.g., tgram://...").classes("flex-grow").bind_value(
+                            url_obj, "url"
+                        )
+                        ui.switch().props(f'dense color={COLOR_THEME["primary"]}').bind_value(url_obj, "enabled")
+                        ui.button(
+                            icon="delete",
+                            on_click=lambda u=url_obj: (config["notifications"]["urls"].remove(u), url_list.refresh()),
+                        ).props(f'flat dense color={COLOR_THEME["primary"]}')
 
-        with ui.row().classes("items-center gap-x-2"):
-            ui.number("Cooldown (s)").props("type=text").bind_value(config["notifications"], "cooldown")
-        ui.label(
-            "Minimum number of seconds to wait between sending notifications. "
-            "Prevents spamming alerts if conditions are met repeatedly."
-        ).classes("text-xs text-gray-500 mb-2 ml-1")
-        ui.separator().classes("my-2")
-
-        url_list()
-
-        with ui.row().classes("w-full items-center mt-2 gap-x-2"):
-            ui.button(
-                "Add Notification URL",
-                icon="add",
-                color=COLOR_THEME["primary"],
-                on_click=lambda: (
-                    config["notifications"]["urls"].append({"url": "", "enabled": True}),
-                    url_list.refresh(),
-                ),
+            with ui.row().classes("items-center gap-x-2"):
+                ui.number("Cooldown (s)").props("type=text").bind_value(config["notifications"], "cooldown")
+            ui.label("Time to wait between sending notifications to prevent spam.").classes(
+                "text-xs text-gray-500 mb-2 ml-1"
             )
-            ui.button(
-                "Test Alerts",
-                on_click=lambda: test_notifications(config),
-                icon="notification_important",
-                color=COLOR_THEME["primary"],
-            )
+            ui.separator().classes("my-2")
+            url_list()
 
-
-def gauge_settings_section(ups_config: Dict) -> None:
-    ups_config.setdefault("gauge_settings", {})
-    gs = ups_config["gauge_settings"]
-    ui.label("Gauge Settings").classes("text-lg font-semibold mt-4")
-    with ui.column().classes("w-full gap-2"):
-        gs.setdefault("load", {})
-        with ui.row().classes("w-full items-center gap-2"):
-            ui.label("Load (%)").classes("font-semibold min-w-[110px]")
-            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(gs["load"], "warn_threshold")
-            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(gs["load"], "high_threshold")
-        gs.setdefault("charge_remaining", {})
-        with ui.row().classes("w-full items-center gap-2"):
-            ui.label("Charge Remaining (%)").classes("font-semibold min-w-[110px]")
-            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(
-                gs["charge_remaining"], "warn_threshold"
-            )
-            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(
-                gs["charge_remaining"], "high_threshold"
-            )
-        gs.setdefault("runtime", {})
-        with ui.row().classes("w-full items-center gap-2"):
-            ui.label("Runtime (min)").classes("font-semibold min-w-[110px]")
-            ui.number("Warn Threshold").props("type=text").classes("w-24").bind_value(gs["runtime"], "warn_threshold")
-            ui.number("High Threshold").props("type=text").classes("w-24").bind_value(gs["runtime"], "high_threshold")
-        gs.setdefault("voltage", {})
-        with ui.row().classes("w-full items-center gap-2"):
-            ui.label("Voltage (V)").classes("font-semibold min-w-[110px]")
-            ui.number("Nominal").props("type=text").classes("w-24").bind_value(gs["voltage"], "nominal")
-            ui.number("Warn Deviation").props("type=text").classes("w-24").bind_value(gs["voltage"], "warn_deviation")
-            ui.number("High Deviation").props("type=text").classes("w-24").bind_value(gs["voltage"], "high_deviation")
+            with ui.row().classes("w-full items-center mt-2 gap-x-2"):
+                ui.button(
+                    "Add URL",
+                    icon="add",
+                    color=COLOR_THEME["primary"],
+                    on_click=lambda: (
+                        config["notifications"]["urls"].append({"url": "", "enabled": True}),
+                        url_list.refresh(),
+                    ),
+                )
+                ui.button(
+                    "Test Alerts",
+                    on_click=lambda: test_notifications(config),
+                    icon="notification_important",
+                    color=COLOR_THEME["primary"],
+                )
 
 
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
@@ -244,49 +259,37 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
     def handle_settings_ups_selection(selected_ups):
         state.selected_ups = selected_ups
         state.selected_ups_settings = selected_ups
-        ups_selector_row.refresh()
         if "device_settings_refresh" in ui_elements:
             ui_elements["device_settings_refresh"].refresh()
-
-    ups_name = state.selected_ups_settings
-    if "ups_devices" not in config:
-        config["ups_devices"] = {}
-    if ups_name not in config["ups_devices"]:
-        config["ups_devices"][ups_name] = {}
 
     with ui.grid(columns=2).classes("w-full gap-4"):
         with ui.card().classes("w-full items-stretch gap-y-4"):
             settings_guide()
             nut_server_settings(config)
-            ups_selector_row(state, handle_settings_ups_selection)
+            notification_settings(config)
             ui.separator()
+
+            ui.label("UPS Specific Settings").classes("text-lg font-semibold")
+            ups_selector_row(state, handle_settings_ups_selection)
 
             @ui.refreshable
             def device_settings():
                 ups_name = state.selected_ups_settings
-                if ups_name not in config["ups_devices"]:
-                    config["ups_devices"][ups_name] = {}
-                ups_config = config["ups_devices"][ups_name]
+                ups_config = config["ups_devices"].setdefault(ups_name, {})
                 ups_config.setdefault("alert_mode", "basic")
                 ups_config.setdefault("basic_alerts", {})
                 ups_config.setdefault("formula_alert", {"expression": "", "message": ""})
                 ups_config.setdefault("gauge_settings", {})
+
                 alert_rules_settings(ups_config)
-                ui.separator()
-                gauge_settings_section(ups_config)
-                ui.separator()
-                notification_settings(config)
-                with ui.row().classes("w-full justify-start pt-4"):
-                    ui.separator()
-                    ui.button(
-                        "Save Settings",
-                        on_click=lambda: save_settings(config),
-                        icon="save",
-                        color=COLOR_THEME["primary"],
-                    )
 
             ui_elements["device_settings_refresh"] = device_settings
             device_settings()
+
+            with ui.row().classes("w-full justify-start pt-4"):
+                ui.button(
+                    "Save Settings", on_click=lambda: save_settings(config), icon="save", color=COLOR_THEME["primary"]
+                )
 
         with ui.card().classes("w-full flex flex-col items-stretch gap-y-4"):
             ui.label("Live Logs").classes("text-lg font-semibold self-center")
