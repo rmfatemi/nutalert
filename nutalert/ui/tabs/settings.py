@@ -64,8 +64,10 @@ def basic_alert_card(config: Dict, key: str, title: str, has_min: bool, has_max:
     alert_conf = config[key]
     alert_conf.setdefault("enabled", False)
     alert_conf.setdefault("message", "")
-    alert_conf.setdefault("min", 110.0 if key == "input_voltage" else 0.0)
-    alert_conf.setdefault("max", 130.0 if key == "input_voltage" else 0.0)
+    if has_min:
+        alert_conf.setdefault("min", 110.0 if key == "input_voltage" else 0.0)
+    if has_max:
+        alert_conf.setdefault("max", 130.0 if key == "input_voltage" else 0.0)
 
     icon_map = {
         "battery_charge": "battery_full",
@@ -236,14 +238,15 @@ def gauge_settings_section(ups_config: Dict) -> None:
 
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
     config = state.config
-    # Use a local state for selected UPS in settings
-    if not hasattr(state, 'selected_ups_settings'):
+    if not hasattr(state, "selected_ups_settings"):
         state.selected_ups_settings = state.selected_ups or (state.ups_names[0] if state.ups_names else None)
 
     def handle_settings_ups_selection(selected_ups):
+        state.selected_ups = selected_ups
         state.selected_ups_settings = selected_ups
-        if 'device_settings_refresh' in ui_elements:
-            ui_elements['device_settings_refresh'].refresh()
+        ups_selector_row.refresh()
+        if "device_settings_refresh" in ui_elements:
+            ui_elements["device_settings_refresh"].refresh()
 
     ups_name = state.selected_ups_settings
     if "ups_devices" not in config:
@@ -255,9 +258,7 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
         with ui.card().classes("w-full items-stretch gap-y-4"):
             settings_guide()
             nut_server_settings(config)
-            # Device selector row for settings
             ups_selector_row(state, handle_settings_ups_selection)
-            ui.label(f"Editing settings for: {ups_name}").classes("text-sm text-gray-400 pb-2")
             ui.separator()
 
             @ui.refreshable
@@ -283,7 +284,8 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
                         icon="save",
                         color=COLOR_THEME["primary"],
                     )
-            ui_elements['device_settings_refresh'] = device_settings
+
+            ui_elements["device_settings_refresh"] = device_settings
             device_settings()
 
         with ui.card().classes("w-full flex flex-col items-stretch gap-y-4"):
@@ -292,5 +294,4 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
                 f"w-full font-mono text-sm flex-grow bg-[{COLOR_THEME['card']}] p-2 rounded-md"
             )
 
-    # Provide a refresh function for the settings tab
-    ui_elements['settings_tab_refresh'] = lambda: build_settings_tab(state, ui_elements)
+    ui_elements["settings_tab_refresh"] = lambda: build_settings_tab(state, ui_elements)
