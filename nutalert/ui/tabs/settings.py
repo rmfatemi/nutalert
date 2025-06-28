@@ -1,13 +1,13 @@
 from nicegui import ui
-from typing import Dict, Any
+from typing import Any, Dict
 from pydantic import ValidationError
 
 from nutalert.config import save_config
 from nutalert.ui.models import AppConfig
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.notifier import NutAlertNotifier
-from nutalert.ui.tabs.guide import settings_guide
 from nutalert.ui.selector import ups_selector_row
+from nutalert.ui.tabs.guide import settings_guide
 
 
 def save_settings(config: Dict) -> None:
@@ -45,16 +45,15 @@ def alert_rules_settings(ups_config: Dict) -> None:
             alert_mode_switcher.refresh()
 
         with ui.row().classes("items-center mt-2"):
-            ui.label("Alert Mode:").classes("mr-4 font-semibold")
             with ui.row().classes("items-center segmented-control"):
                 basic_class = "bg-primary text-white" if ups_config["alert_mode"] == "basic" else ""
                 formula_class = "bg-primary text-white" if ups_config["alert_mode"] == "formula" else ""
 
-                ui.button("Basic", on_click=lambda: set_mode("basic")).props(
+                ui.button("Basic Alerts", on_click=lambda: set_mode("basic")).props(
                     f'flat color={COLOR_THEME["primary"]}'
                 ).classes(f"rounded-l-lg {basic_class}")
 
-                ui.button("Formula", on_click=lambda: set_mode("formula")).props(
+                ui.button("Formula Based Alerts", on_click=lambda: set_mode("formula")).props(
                     f'flat color={COLOR_THEME["primary"]}'
                 ).classes(f"rounded-r-lg {formula_class}")
 
@@ -68,37 +67,48 @@ def alert_rules_settings(ups_config: Dict) -> None:
 
 def basic_alert_rules(ups_config: Dict) -> None:
     basic_alerts_config = ups_config.get("basic_alerts", {})
-    gauge_config = ups_config.get("gauge_settings", {})
 
     with ui.column().classes("w-full gap-4 mt-4"):
-        basic_alert_card(
-            basic_alerts_config, gauge_config, "battery_charge", "Battery Charge", has_min=True, has_max=False
-        )
-        basic_alert_card(basic_alerts_config, gauge_config, "runtime", "Battery Runtime", has_min=True, has_max=False)
-        basic_alert_card(basic_alerts_config, gauge_config, "load", "UPS Load", has_min=False, has_max=True)
-        basic_alert_card(
-            basic_alerts_config, gauge_config, "input_voltage", "Input Voltage", has_min=True, has_max=True
-        )
+        basic_alert_card(basic_alerts_config, "battery_charge", "Battery Charge", has_min=True, has_max=False)
+        basic_alert_card(basic_alerts_config, "runtime", "Battery Runtime", has_min=True, has_max=False)
+        basic_alert_card(basic_alerts_config, "load", "UPS Load", has_min=False, has_max=True)
+        basic_alert_card(basic_alerts_config, "input_voltage", "Input Voltage", has_min=True, has_max=True)
         ups_status_alert_card(basic_alerts_config)
 
 
-def _create_gauge_settings(gauge_conf: Dict, key: str):
-    ui.separator().classes("my-3")
-    with ui.column().classes("w-full"):
-        ui.label("Gauge Thresholds").classes("text-md font-semibold pb-2")
-        with ui.row().classes("w-full items-center gap-x-4"):
-            if key == "voltage":
-                ui.number("Nominal").props("type=text").classes("w-28").bind_value(gauge_conf, "nominal")
-                ui.number("Warn Deviation").props("type=text").classes("w-28").bind_value(gauge_conf, "warn_deviation")
-                ui.number("High Deviation").props("type=text").classes("w-28").bind_value(gauge_conf, "high_deviation")
-            else:
-                ui.number("Warn Threshold").props("type=text").classes("w-32").bind_value(gauge_conf, "warn_threshold")
-                ui.number("High Threshold").props("type=text").classes("w-32").bind_value(gauge_conf, "high_threshold")
+def gauge_settings(gauge_config: Dict) -> None:
+    with ui.expansion("Gauge Settings", icon="speed").classes("w-full border rounded-md mt-4"):
+        with ui.column().classes("w-full p-4 gap-2"):
+
+            def gauge_row(conf: Dict, key: str, title: str):
+                ui.label(title).classes("font-semibold text-md")
+                with ui.row().classes("w-full items-center no-wrap gap-x-4"):
+                    if key == "voltage":
+                        ui.number("Nominal").props("type=text").classes("w-28").bind_value(conf, "nominal")
+                        ui.number("Warn Deviation").props("type=text").classes("w-28").bind_value(
+                            conf, "warn_deviation"
+                        )
+                        ui.number("High Deviation").props("type=text").classes("w-28").bind_value(
+                            conf, "high_deviation"
+                        )
+                    else:
+                        ui.number("Warn Threshold").props("type=text").classes("w-32").bind_value(
+                            conf, "warn_threshold"
+                        )
+                        ui.number("High Threshold").props("type=text").classes("w-32").bind_value(
+                            conf, "high_threshold"
+                        )
+
+            gauge_row(gauge_config.setdefault("charge_remaining", {}), "charge_remaining", "Battery Charge")
+            ui.separator()
+            gauge_row(gauge_config.setdefault("runtime", {}), "runtime", "Battery Runtime")
+            ui.separator()
+            gauge_row(gauge_config.setdefault("load", {}), "load", "UPS Load")
+            ui.separator()
+            gauge_row(gauge_config.setdefault("voltage", {}), "voltage", "Input Voltage")
 
 
-def basic_alert_card(
-    basic_alerts_config: Dict, gauge_config: Dict, key: str, title: str, has_min: bool, has_max: bool
-) -> None:
+def basic_alert_card(basic_alerts_config: Dict, key: str, title: str, has_min: bool, has_max: bool) -> None:
     alert_conf = basic_alerts_config.setdefault(key, {})
     alert_conf.setdefault("enabled", False)
     alert_conf.setdefault("message", "")
@@ -134,17 +144,6 @@ def basic_alert_card(
             ui.input("Alert Message", placeholder="Notification message...").classes("w-full pt-2").bind_value(
                 alert_conf, "message"
             )
-
-            gauge_key_map = {
-                "battery_charge": "charge_remaining",
-                "runtime": "runtime",
-                "load": "load",
-                "input_voltage": "voltage",
-            }
-            gauge_key = gauge_key_map.get(key)
-            if gauge_key:
-                gauge_conf_section = gauge_config.setdefault(gauge_key, {})
-                _create_gauge_settings(gauge_conf_section, gauge_key)
 
 
 def ups_status_alert_card(config: Dict) -> None:
@@ -259,6 +258,7 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
     def handle_settings_ups_selection(selected_ups):
         state.selected_ups = selected_ups
         state.selected_ups_settings = selected_ups
+        ups_selector_row.refresh()
         if "device_settings_refresh" in ui_elements:
             ui_elements["device_settings_refresh"].refresh()
 
@@ -282,6 +282,7 @@ def build_settings_tab(state, ui_elements: Dict[str, Any]):
                 ups_config.setdefault("gauge_settings", {})
 
                 alert_rules_settings(ups_config)
+                gauge_settings(ups_config.get("gauge_settings", {}))
 
             ui_elements["device_settings_refresh"] = device_settings
             device_settings()

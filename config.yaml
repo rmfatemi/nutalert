@@ -10,7 +10,7 @@ notifications:
     enabled: true
 ups_devices:
   apc:
-    alert_mode: basic
+    alert_mode: formula
     gauge_settings:
       load:
         warn_threshold: 80
@@ -56,7 +56,7 @@ ups_devices:
       message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
         mins'
   cyber:
-    alert_mode: basic
+    alert_mode: formula
     gauge_settings:
       load:
         warn_threshold: 20.0
@@ -97,7 +97,7 @@ ups_devices:
         alert_when_status_changed: false
         message: UPS status not in acceptable list
     formula_alert:
-      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load
+      expression: (battery_charge < 23 or actual_runtime_minutes < 20) and ups_load
         > 20
       message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
         mins'
@@ -114,7 +114,7 @@ ups_devices:
         warn_threshold: 15
         high_threshold: 5
       voltage:
-        nominal: 120
+        nominal: 230.0
         warn_deviation: 10
         high_deviation: 15
     basic_alerts:
