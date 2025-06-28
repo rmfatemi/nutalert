@@ -3,7 +3,7 @@ import time
 import random
 import threading
 
-HOST = '0.0.0.0'
+HOST = "0.0.0.0"
 PORT = 3493
 POLL_FREQ_SECONDS = 2
 
@@ -56,7 +56,7 @@ UPS_DATA = {
         "ups.test.result": "No test initiated",
         "ups.timer.reboot": "0",
         "ups.timer.shutdown": "-1",
-        "ups.vendorid": "051d"
+        "ups.vendorid": "051d",
     },
     "cyberpower": {
         "battery.charge": "100",
@@ -106,7 +106,7 @@ UPS_DATA = {
         "ups.test.result": "No test initiated",
         "ups.timer.reboot": "0",
         "ups.timer.shutdown": "-1",
-        "ups.vendorid": "0764"
+        "ups.vendorid": "0764",
     },
     "eaton220": {
         "battery.charge": "100",
@@ -156,58 +156,60 @@ UPS_DATA = {
         "ups.test.result": "No test initiated",
         "ups.timer.reboot": "0",
         "ups.timer.shutdown": "-1",
-        "ups.vendorid": "0463"
-    }
+        "ups.vendorid": "0463",
+    },
 }
-INITIAL_RUNTIMES = {name: int(data['battery.runtime']) for name, data in UPS_DATA.items()}
+INITIAL_RUNTIMES = {name: int(data["battery.runtime"]) for name, data in UPS_DATA.items()}
+
 
 def update_dynamic_values():
     global UPS_DATA
     while True:
         for ups_name, data in UPS_DATA.items():
-            load = int(data['ups.load'])
+            load = int(data["ups.load"])
             new_load = load + random.randint(-2, 2)
-            data['ups.load'] = str(min(100, max(5, new_load)))
+            data["ups.load"] = str(min(100, max(5, new_load)))
 
-            nominal_voltage = int(data['input.voltage.nominal'])
+            nominal_voltage = int(data["input.voltage.nominal"])
             if nominal_voltage == 120:
-                data['input.voltage'] = f"{random.uniform(118.5, 121.5):.1f}"
+                data["input.voltage"] = f"{random.uniform(118.5, 121.5):.1f}"
             else:
-                data['input.voltage'] = f"{random.uniform(218.0, 222.0):.1f}"
+                data["input.voltage"] = f"{random.uniform(218.0, 222.0):.1f}"
 
-            if data['ups.status'] == 'OB' or data['ups.status'] == 'LB':
-                charge = int(data['battery.charge'])
+            if data["ups.status"] == "OB" or data["ups.status"] == "LB":
+                charge = int(data["battery.charge"])
                 if charge > 0:
                     charge -= 1
-                    data['battery.charge'] = str(charge)
-                    runtime = int(float(data['battery.runtime']))
-                    data['battery.runtime'] = str(max(0, int(runtime * 0.95)))
-                    data['battery.voltage'] = f"{float(data['battery.voltage']) - 0.05:.2f}"
-                if charge <= int(data['battery.charge.low']):
-                    data['ups.status'] = 'LB'
-            
-            elif data['ups.status'] == 'OL':
-                charge = int(data['battery.charge'])
+                    data["battery.charge"] = str(charge)
+                    runtime = int(float(data["battery.runtime"]))
+                    data["battery.runtime"] = str(max(0, int(runtime * 0.95)))
+                    data["battery.voltage"] = f"{float(data['battery.voltage']) - 0.05:.2f}"
+                if charge <= int(data["battery.charge.low"]):
+                    data["ups.status"] = "LB"
+
+            elif data["ups.status"] == "OL":
+                charge = int(data["battery.charge"])
                 if charge < 100:
                     charge = min(100, charge + 1)
-                    data['battery.charge'] = str(charge)
-                    
-                    max_runtime = INITIAL_RUNTIMES[ups_name]
-                    current_runtime = int(data['battery.runtime'])
-                    data['battery.runtime'] = str(min(max_runtime, int(current_runtime * 1.05)))
-                
-                nominal_batt_volt = float(data['battery.voltage.nominal'])
-                charge_volt_cap = nominal_batt_volt * 1.14
-                current_batt_volt = float(data['battery.voltage'])
-                if current_batt_volt < charge_volt_cap:
-                     new_volt = min(charge_volt_cap, current_batt_volt + 0.05)
-                     data['battery.voltage'] = f"{new_volt:.2f}"
+                    data["battery.charge"] = str(charge)
 
-            if random.randint(1, 200) == 1 and data['ups.status'] == 'OL':
-                data['ups.status'] = 'OB'
-                data['input.transfer.reason'] = 'simulated power loss'
+                    max_runtime = INITIAL_RUNTIMES[ups_name]
+                    current_runtime = int(data["battery.runtime"])
+                    data["battery.runtime"] = str(min(max_runtime, int(current_runtime * 1.05)))
+
+                nominal_batt_volt = float(data["battery.voltage.nominal"])
+                charge_volt_cap = nominal_batt_volt * 1.14
+                current_batt_volt = float(data["battery.voltage"])
+                if current_batt_volt < charge_volt_cap:
+                    new_volt = min(charge_volt_cap, current_batt_volt + 0.05)
+                    data["battery.voltage"] = f"{new_volt:.2f}"
+
+            if random.randint(1, 200) == 1 and data["ups.status"] == "OL":
+                data["ups.status"] = "OB"
+                data["input.transfer.reason"] = "simulated power loss"
 
         time.sleep(POLL_FREQ_SECONDS)
+
 
 def handle_client(conn, addr):
     try:
@@ -215,8 +217,8 @@ def handle_client(conn, addr):
         if not raw_data:
             return
 
-        command = raw_data.decode('utf-8').strip().upper()
-        
+        command = raw_data.decode("utf-8").strip().upper()
+
         response = ""
         if command == "LIST UPS":
             response = "BEGIN LIST UPS\n"
@@ -238,33 +240,34 @@ def handle_client(conn, addr):
                     response = "ERR UNKNOWN-UPS\n"
             else:
                 response = "ERR SYNTAX-ERROR\n"
-        
+
         elif command.startswith("LOGIN"):
             response = "OK\n"
 
-        elif command.startswith("SET VAR"): 
-            parts = raw_data.decode('utf-8').strip().split()
+        elif command.startswith("SET VAR"):
+            parts = raw_data.decode("utf-8").strip().split()
             if len(parts) >= 5 and parts[3] == "=":
                 ups_name = parts[2]
                 var_name = parts[4]
-                var_value = ' '.join(parts[6:])
+                var_value = " ".join(parts[6:])
                 if ups_name in UPS_DATA and var_name in UPS_DATA[ups_name]:
                     UPS_DATA[ups_name][var_name] = var_value
                     response = "OK\n"
                 else:
                     response = "ERR UNKNOWN-UPS-OR-VAR\n"
             else:
-                 response = "ERR SYNTAX-ERROR\n"
+                response = "ERR SYNTAX-ERROR\n"
 
         else:
             response = "ERR UNKNOWN-COMMAND\n"
 
-        conn.sendall(response.encode('utf-8'))
+        conn.sendall(response.encode("utf-8"))
 
     except Exception:
         pass
     finally:
         conn.close()
+
 
 def main():
     updater_thread = threading.Thread(target=update_dynamic_values, daemon=True)
@@ -272,13 +275,13 @@ def main():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
+
         try:
             server_socket.bind((HOST, PORT))
         except OSError as e:
             print(f"FATAL: Could not bind to port {PORT}. Is another service running? Error: {e}")
             return
-            
+
         server_socket.listen()
         print(f"NUT server simulator listening on {HOST}:{PORT}")
 
@@ -290,6 +293,7 @@ def main():
             except KeyboardInterrupt:
                 print("\nServer shutting down.")
                 break
+
 
 if __name__ == "__main__":
     main()
