@@ -26,11 +26,10 @@ async def dashboard_page():
         if settings_tab is not None:
             settings_tab.refresh()
 
-    ups_selector_row(state, handle_selection)
-
     with ui.element("div").classes(f"w-full px-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
         with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
             with ui.tab_panel("Dashboard"):
+                ups_selector_row(state, handle_selection)
                 build_dashboard_tab(ui_elements, state)
             with ui.tab_panel("Configuration"):
                 @ui.refreshable
