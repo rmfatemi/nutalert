@@ -7,6 +7,7 @@ from nutalert.ui.models import AppConfig
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.notifier import NutAlertNotifier
 from nutalert.ui.tabs.guide import settings_guide
+from nutalert.ui.selector import ups_selector_row
 
 
 def save_settings(config: Dict) -> None:
@@ -235,37 +236,61 @@ def gauge_settings_section(ups_config: Dict) -> None:
 
 def build_settings_tab(state, ui_elements: Dict[str, Any]):
     config = state.config
-    ups_name = state.selected_ups
+    # Use a local state for selected UPS in settings
+    if not hasattr(state, 'selected_ups_settings'):
+        state.selected_ups_settings = state.selected_ups or (state.ups_names[0] if state.ups_names else None)
+
+    def handle_settings_ups_selection(selected_ups):
+        state.selected_ups_settings = selected_ups
+        if 'device_settings_refresh' in ui_elements:
+            ui_elements['device_settings_refresh'].refresh()
+
+    ups_name = state.selected_ups_settings
     if "ups_devices" not in config:
         config["ups_devices"] = {}
     if ups_name not in config["ups_devices"]:
         config["ups_devices"][ups_name] = {}
-    ups_config = config["ups_devices"][ups_name]
-    ups_config.setdefault("alert_mode", "basic")
-    ups_config.setdefault("basic_alerts", {})
-    ups_config.setdefault("formula_alert", {"expression": "", "message": ""})
-    ups_config.setdefault("gauge_settings", {})
 
     with ui.grid(columns=2).classes("w-full gap-4"):
         with ui.card().classes("w-full items-stretch gap-y-4"):
             settings_guide()
             nut_server_settings(config)
+            # Device selector row for settings
+            ups_selector_row(state, handle_settings_ups_selection)
+            ui.label(f"Editing settings for: {ups_name}").classes("text-sm text-gray-400 pb-2")
             ui.separator()
-            alert_rules_settings(ups_config)
-            ui.separator()
-            gauge_settings_section(ups_config)
-            ui.separator()
-            notification_settings(config)
-            with ui.row().classes("w-full justify-start pt-4"):
+
+            @ui.refreshable
+            def device_settings():
+                ups_name = state.selected_ups_settings
+                if ups_name not in config["ups_devices"]:
+                    config["ups_devices"][ups_name] = {}
+                ups_config = config["ups_devices"][ups_name]
+                ups_config.setdefault("alert_mode", "basic")
+                ups_config.setdefault("basic_alerts", {})
+                ups_config.setdefault("formula_alert", {"expression": "", "message": ""})
+                ups_config.setdefault("gauge_settings", {})
+                alert_rules_settings(ups_config)
                 ui.separator()
-                ui.button(
-                    "Save Settings",
-                    on_click=lambda: save_settings(config),
-                    icon="save",
-                    color=COLOR_THEME["primary"],
-                )
+                gauge_settings_section(ups_config)
+                ui.separator()
+                notification_settings(config)
+                with ui.row().classes("w-full justify-start pt-4"):
+                    ui.separator()
+                    ui.button(
+                        "Save Settings",
+                        on_click=lambda: save_settings(config),
+                        icon="save",
+                        color=COLOR_THEME["primary"],
+                    )
+            ui_elements['device_settings_refresh'] = device_settings
+            device_settings()
+
         with ui.card().classes("w-full flex flex-col items-stretch gap-y-4"):
             ui.label("Live Logs").classes("text-lg font-semibold self-center")
             ui_elements["log_view"] = ui.log(max_lines=1000).classes(
                 f"w-full font-mono text-sm flex-grow bg-[{COLOR_THEME['card']}] p-2 rounded-md"
             )
+
+    # Provide a refresh function for the settings tab
+    ui_elements['settings_tab_refresh'] = lambda: build_settings_tab(state, ui_elements)
