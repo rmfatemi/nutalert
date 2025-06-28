@@ -4,6 +4,7 @@ from nicegui import ui, app
 from nutalert.ui.state import AppState
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.ui.header import build_header
+from nutalert.ui.selector import ups_selector_row
 from nutalert.ui.tabs.settings import build_settings_tab
 from nutalert.ui.tabs.dashboard import build_dashboard_tab
 
@@ -18,7 +19,13 @@ async def dashboard_page():
 
     build_header(ui_elements, state)
 
-    with ui.element("div").classes(f"w-full p-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
+    def handle_selection(selected_ups):
+        state.selected_ups = selected_ups
+        ups_selector_row.refresh()
+
+    ups_selector_row(state, handle_selection)
+
+    with ui.element("div").classes(f"w-full px-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
         with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
             with ui.tab_panel("Dashboard"):
                 build_dashboard_tab(ui_elements, state)

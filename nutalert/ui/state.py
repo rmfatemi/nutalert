@@ -1,7 +1,6 @@
 import asyncio
 from nicegui import ui, run
 from typing import Dict, Any
-from nutalert.ui.theme import COLOR_THEME
 from nutalert.utils import setup_logger
 from nutalert.config import load_config
 from nutalert.processor import get_ups_data_and_alerts
@@ -32,17 +31,13 @@ class AppState:
                 if result:
                     nut_values, alert_message, is_alerting, new_logs = result
                     self.nut_values = nut_values or self.nut_values
-                    old_ups_names = set(self.ups_names)
+                    set(self.ups_names)
                     self.ups_names = list(self.nut_values.keys())
                     if not self.selected_ups or self.selected_ups not in self.ups_names:
                         self.selected_ups = self.ups_names[0] if self.ups_names else ""
                     self.alert_message = alert_message
                     self.is_alerting = is_alerting
                     self.logs = new_logs or self.logs
-                    if set(self.ups_names) != old_ups_names:
-                        from nutalert.ui.header import ups_selector
-
-                        ups_selector.refresh()
             except Exception as e:
                 logger.error(f"error in background polling task: {e}")
                 self.alert_message = f"Error: {e}"
@@ -67,27 +62,6 @@ class AppState:
         voltage_nominal = safe_get(gs.get("voltage", {}), "nominal", 120)
         voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
         voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
-        if "header_status_card" in ui_elements:
-            header_status_card = ui_elements["header_status_card"]
-            header_status_icon = ui_elements["header_status_icon"]
-            header_status_label = ui_elements["header_status_label"]
-            if self.is_alerting:
-                header_status_card.classes(
-                    remove=f"bg-[{COLOR_THEME['success_banner_bg']}]",
-                    add=f"bg-[{COLOR_THEME['error_banner_bg']}] text-[{COLOR_THEME['text']}]",
-                )
-                header_status_icon.props("name=error")
-                header_status_label.set_text(self.alert_message)
-            else:
-                header_status_card.classes(
-                    remove=f"bg-[{COLOR_THEME['error_banner_bg']}]",
-                    add=f"bg-[{COLOR_THEME['success_banner_bg']}] text-[{COLOR_THEME['text']}]",
-                )
-                header_status_icon.props("name=check_circle")
-                header_status_label.set_text(f"Status: {ups_values.get('ups.status', 'UNKNOWN').upper()}")
-            header_status_card.update()
-            header_status_icon.update()
-            header_status_label.update()
 
         if "load_plot" in ui_elements:
             ui_elements["load_plot"].figure = create_dial_gauge(
