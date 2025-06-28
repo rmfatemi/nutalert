@@ -11,11 +11,15 @@ def ups_selector(state):
             ui.spinner(size="sm")
             ui.label("Waiting for UPS devices...").classes("text-gray-500")
         else:
-            ui.select(
-                options=state.ups_names,
-                value=state.selected_ups,
-                on_change=lambda e: setattr(state, "selected_ups", e.value),
-            ).classes("min-w-[180px]")
+            with ui.row().classes("gap-2"):
+                for ups in state.ups_names:
+                    selected = ups == state.selected_ups
+                    btn_classes = "rounded unelevated dense " + ("text-white" if selected else "text-primary")
+                    ui.button(
+                        ups,
+                        color=COLOR_THEME["primary"] if selected else COLOR_THEME["card"],
+                        on_click=lambda u=ups: setattr(state, "selected_ups", u),
+                    ).classes(btn_classes)
 
 
 def build_header(ui_elements: Dict[str, Any], state):
@@ -25,15 +29,14 @@ def build_header(ui_elements: Dict[str, Any], state):
                 ui.image("/assets/logo.svg").classes("w-10 h-9 no-darkreader")
                 ui.label("nutalert").classes("text-2xl font-bold ml-2")
             with ui.row().classes("flex-1 items-center justify-center"):
-                ups_selector(state)
-            with ui.row().classes("flex-1 items-center justify-center"):
                 with ui.tabs().props("dense").classes("h-10") as tabs:
                     ui.tab("Dashboard")
                     ui.tab("Configuration")
                 ui_elements["main_tabs"] = tabs
-            with ui.row().classes("flex-1 items-center justify-end"):
-                with ui.card().classes("p-2 transition-all") as card:
+            with ui.row().classes("flex-1 items-center justify-end no-wrap h-full gap-0"):
+                with ui.card().classes("p-2 transition-all h-full flex items-center") as card:
                     ui_elements["header_status_card"] = card
-                    with ui.row().classes("items-center no-wrap gap-x-2"):
+                    with ui.row().classes("items-center no-wrap gap-x-2 h-full flex-nowrap"):
+                        ups_selector(state)
                         ui_elements["header_status_icon"] = ui.icon("check_circle").classes("text-lg")
-                        ui_elements["header_status_label"] = ui.label("Initializing...")
+                        ui_elements["header_status_label"] = ui.label("Initializing...").classes("whitespace-nowrap")

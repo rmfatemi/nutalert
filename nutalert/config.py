@@ -5,7 +5,7 @@ from typing import Dict, Any
 from nutalert.fetcher import fetch_nut_ups_names
 
 
-CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.yaml'))
+CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml"))
 
 
 DEFAULT_UPS_CONFIG: Dict[str, Any] = {
@@ -65,13 +65,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "ups_devices": {},
 }
 
+
 def load_config() -> Dict[str, Any]:
     if not os.path.exists(CONFIG_PATH):
         config = DEFAULT_CONFIG.copy()
-        ups_names = fetch_nut_ups_names(
-            config["nut_server"]["host"],
-            config["nut_server"]["port"]
-        )
+        ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
         for ups_name in ups_names:
             config["ups_devices"][ups_name] = DEFAULT_UPS_CONFIG.copy()
         save_config(config)
@@ -82,8 +80,7 @@ def load_config() -> Dict[str, Any]:
         config = {}
     config = config  # type: ignore
     ups_names = fetch_nut_ups_names(
-        config.get("nut_server", {}).get("host", ""),
-        config.get("nut_server", {}).get("port", 3493)
+        config.get("nut_server", {}).get("host", ""), config.get("nut_server", {}).get("port", 3493)
     )
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
@@ -92,6 +89,7 @@ def load_config() -> Dict[str, Any]:
             config["ups_devices"][ups_name] = DEFAULT_UPS_CONFIG.copy()
     save_config(config)
     return config
+
 
 def save_config(config: Dict[str, Any]) -> str:
     try:
