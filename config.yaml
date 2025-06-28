@@ -11,7 +11,7 @@ ups_devices:
     alert_mode: basic
     gauge_settings:
       load:
-        warn_threshold: 23.0
+        warn_threshold: 80
         high_threshold: 100
       charge_remaining:
         warn_threshold: 35
@@ -26,19 +26,16 @@ ups_devices:
     basic_alerts:
       battery_charge:
         enabled: true
-        min: 70.0
+        min: 90
         message: UPS battery charge below minimum threshold
-        max: 0.0
       runtime:
         enabled: true
         min: 15
         message: UPS runtime below minimum threshold
-        max: 0.0
       load:
         enabled: true
         max: 50
         message: UPS load exceeds maximum threshold
-        min: 0.0
       input_voltage:
         enabled: false
         min: 110.0
