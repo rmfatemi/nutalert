@@ -10,6 +10,52 @@ notifications:
     enabled: true
 ups_devices:
   apc:
+    alert_mode: basic
+    gauge_settings:
+      load:
+        warn_threshold: 80
+        high_threshold: 100
+      charge_remaining:
+        warn_threshold: 35
+        high_threshold: 15
+      runtime:
+        warn_threshold: 15
+        high_threshold: 5
+      voltage:
+        nominal: 120
+        warn_deviation: 10
+        high_deviation: 15
+    basic_alerts:
+      battery_charge:
+        enabled: false
+        min: 90
+        message: UPS battery charge below minimum threshold
+      runtime:
+        enabled: true
+        min: 15
+        message: UPS runtime below minimum threshold
+      load:
+        enabled: true
+        max: 50
+        message: UPS load exceeds maximum threshold
+      input_voltage:
+        enabled: true
+        min: 110.0
+        max: 130.0
+        message: UPS input voltage outside acceptable range
+      ups_status:
+        enabled: true
+        acceptable:
+        - ol
+        - online
+        alert_when_status_changed: false
+        message: UPS status not in acceptable list
+    formula_alert:
+      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load
+        > 20
+      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
+        mins'
+  cyberpower:
     alert_mode: formula
     gauge_settings:
       load:
@@ -55,52 +101,6 @@ ups_devices:
         > 20
       message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
         mins'
-  cyber:
-    alert_mode: formula
-    gauge_settings:
-      load:
-        warn_threshold: 20.0
-        high_threshold: 100
-      charge_remaining:
-        warn_threshold: 35
-        high_threshold: 15
-      runtime:
-        warn_threshold: 15
-        high_threshold: 5
-      voltage:
-        nominal: 120
-        warn_deviation: 10
-        high_deviation: 15
-    basic_alerts:
-      battery_charge:
-        enabled: true
-        min: 90
-        message: UPS battery charge below minimum threshold
-      runtime:
-        enabled: true
-        min: 15
-        message: UPS runtime below minimum threshold
-      load:
-        enabled: true
-        max: 50
-        message: UPS load exceeds maximum threshold
-      input_voltage:
-        enabled: false
-        min: 110.0
-        max: 130.0
-        message: UPS input voltage outside acceptable range
-      ups_status:
-        enabled: true
-        acceptable:
-        - ol
-        - online
-        alert_when_status_changed: false
-        message: UPS status not in acceptable list
-    formula_alert:
-      expression: (battery_charge < 23 or actual_runtime_minutes < 20) and ups_load
-        > 20
-      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f}
-        mins'
   eaton220:
     alert_mode: basic
     gauge_settings:
@@ -114,7 +114,7 @@ ups_devices:
         warn_threshold: 15
         high_threshold: 5
       voltage:
-        nominal: 230.0
+        nominal: 220.0
         warn_deviation: 10
         high_deviation: 15
     basic_alerts:

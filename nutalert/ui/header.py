@@ -23,7 +23,8 @@ def build_header(ui_elements: Dict[str, Any], state):
             with ui.row().classes("flex-1 items-center justify-center"):
                 with ui.tabs().props("dense").classes("h-10") as tabs:
                     ui.tab("Dashboard")
-                    ui.tab("Configuration")
+                    ui.tab("Settings")
+                    ui.tab("Logs")
                 ui_elements["main_tabs"] = tabs
             with ui.row().classes("flex-1 items-center justify-end no-wrap h-full gap-0"):
                 with (
