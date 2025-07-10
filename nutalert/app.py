@@ -33,14 +33,18 @@ async def dashboard_page():
                 ups_selector_row(state, handle_selection)
                 build_dashboard_tab(ui_elements, state)
             with ui.tab_panel("Settings"):
+
                 @ui.refreshable
                 def settings_tab():
                     build_settings_tab(state, ui_elements)
+
                 ui_elements["settings_tab"] = settings_tab()
             with ui.tab_panel("Logs"):
+
                 @ui.refreshable
                 def logs_tab():
                     build_logs_tab(state, ui_elements)
+
                 ui_elements["logs_tab"] = logs_tab()
 
         ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
