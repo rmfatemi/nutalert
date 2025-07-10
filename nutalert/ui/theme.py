@@ -1,0 +1,18 @@
+COLOR_THEME = {
+    "background": "#121212",
+    "primary": "orange",
+    "secondary": "#263238",
+    "text": "#E0E0E0",
+    "card": "#2B2B2B",
+    "success": "#66BB6A",
+    "warning": "#FFA726",
+    "error": "#EF5350",
+    "gauge_background": "rgba(0,0,0,0)",
+    "success_bg": "rgba(102, 187, 106, 0.2)",
+    "error_bg": "rgba(239, 83, 80, 0.2)",
+    "success_banner_bg": "#66BB6A",
+    "error_banner_bg": "#EF5350",
+    "success_text": "#66BB6A",
+    "error_text": "#EF5350",
+    "log_bg": "#212121",
+}

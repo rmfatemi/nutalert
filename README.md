@@ -48,13 +48,13 @@ Access the web interface at `http://{server_ip}:8087` to:
 Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
 
 ### Verify NUT Server Connectivity
-If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
+This set up guide assumes you already have NUT server set up. First, verify connectivity from the **nutalert** host:
 
 ```bash
-/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
+/bin/echo -e "list ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
 ```
 
-A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
+A successful response will display a list of available UPS devices from your NUT server confirming that **nutalert** can retrieve your monitoring data.
 
 ### Docker Deployment Scenarios
 
@@ -62,35 +62,20 @@ If you wish to run your NUT server using Docker alongside nutalert, create a `do
 
 ```yaml
 services:
-  nut-upsd:
-    image: instantlinux/nut-upsd
-    container_name: nut
-    environment:
-      - TZ=America/New_York         # modify if different
-      - API_PASSWORD={PASSWORD}     # required for nut, not nutalert
-      - DRIVER=usbhid-ups           # modify based on your ups model
-    devices:
-      - /dev/bus/usb:/dev/bus/usb   # your ups device
-    ports:
-      - 3493:3493                   # nut port, modify if needed
-    restart: unless-stopped
-
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
     container_name: nutalert
     depends_on:
       - nut-upsd
     ports:
-      - 8087:8087                   # web ui port, modify if needed
+      - 8087:8087                   # web ui port
     volumes:
       - /path/to/config_dir:/config # set the correct config path
     restart: unless-stopped
 ```
-#### Using an External NUT Server
-If your NUT server is hosted separately you can remove `nut-upsd` from template above and add its port to `nutalert`'s ports section.
 
-Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
-```
+Start the service with:
+```bash
 docker-compose up -d
 ```
 
