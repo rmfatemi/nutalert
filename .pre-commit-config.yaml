@@ -41,7 +41,7 @@ repos:
     additional_dependencies: [ types-setuptools, types-docutils, types-requests, types-PyYAML ]
 
 - repo: https://github.com/python-poetry/poetry
-  rev: 1.8.3
+  rev: 2.1.3
   hooks:
   - id: poetry-check
 
