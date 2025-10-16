@@ -1,13 +1,14 @@
-from typing import Dict, Any
+import yaml
+
 from nicegui import ui, app
+from typing import Dict, Any
 
 from nutalert.ui.state import AppState
 from nutalert.ui.theme import COLOR_THEME
 from nutalert.ui.header import build_header
 from nutalert.ui.selector import ups_selector_row
-from nutalert.ui.tabs.settings import build_settings_tab
-from nutalert.ui.tabs.dashboard import build_dashboard_tab
-from nutalert.ui.tabs.logs import build_logs_tab
+from nutalert.ui.dashboard import build_dashboard_tab
+from nutalert.ui.settings import build_configuration_tab
 
 
 state = AppState()
@@ -23,9 +24,9 @@ async def dashboard_page():
     def handle_selection(selected_ups):
         state.selected_ups = selected_ups
         ups_selector_row.refresh()
-        settings_tab = ui_elements.get("settings_tab")
-        if settings_tab is not None:
-            settings_tab.refresh()
+        build_dashboard_tab.refresh()
+    
+    state._selector_refresh_callback = ups_selector_row.refresh
 
     with ui.element("div").classes(f"w-full px-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
         with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
@@ -33,19 +34,7 @@ async def dashboard_page():
                 ups_selector_row(state, handle_selection)
                 build_dashboard_tab(ui_elements, state)
             with ui.tab_panel("Settings"):
-
-                @ui.refreshable
-                def settings_tab():
-                    build_settings_tab(state, ui_elements)
-
-                ui_elements["settings_tab"] = settings_tab()
-            with ui.tab_panel("Logs"):
-
-                @ui.refreshable
-                def logs_tab():
-                    build_logs_tab(state, ui_elements)
-
-                ui_elements["logs_tab"] = logs_tab()
+                build_configuration_tab(ui_elements, state)
 
         ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
 
