@@ -103,6 +103,7 @@ def create_dial_gauge(
     return fig
 
 
+@ui.refreshable
 def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     ups_values = state.nut_values.get(state.selected_ups, {})
 
@@ -123,7 +124,7 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
 
     with ui.column().classes("w-full"):
-        with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full"):
+        with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full gap-1"):
             ui_elements["load_plot"] = ui.plotly(
                 create_dial_gauge(
                     float(ups_values.get("ups.load", 0.0)),
@@ -175,7 +176,6 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
             )
 
         with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
-            ui.label("UPS Data").classes("text-lg font-semibold")
             ui_elements["raw_data_grid"] = ui.grid().classes(
-                "w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2 mt-4 divide-x divide-gray-700"
+                "w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4 px-2"
             )
