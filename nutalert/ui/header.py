@@ -3,7 +3,7 @@ from typing import Dict, Any
 from nutalert.ui.theme import COLOR_THEME
 
 
-def build_header(ui_elements: Dict[str, Any], state):
+def build_header(ui_elements: Dict[str, Any], state, on_settings_click, on_logo_click):
     all_ok = True
     for ups in state.ups_names:
         status = getattr(state, "ups_status", {}).get(ups, "ok")
@@ -16,16 +16,17 @@ def build_header(ui_elements: Dict[str, Any], state):
     status_bg = COLOR_THEME["success_bg"] if all_ok else COLOR_THEME["error_bg"]
 
     with ui.header(elevated=False).classes(f"flex px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"):
-        with ui.row().classes("w-full items-center"):
-            with ui.row().classes("flex-1 items-center"):
+        with ui.row().classes("w-full items-center justify-between gap-4"):
+            # Left: Logo and title (clickable)
+            with ui.row().classes("items-center cursor-pointer gap-1.5").on("click", on_logo_click):
                 ui.image("/assets/logo.svg").classes("w-10 h-9 no-darkreader")
-                ui.label("nutalert").classes("text-2xl font-bold ml-2")
-            with ui.row().classes("flex-1 items-center justify-center"):
-                with ui.tabs().props("dense").classes("h-10") as tabs:
-                    ui.tab("Dashboard")
-                    ui.tab("Settings")
-                ui_elements["main_tabs"] = tabs
-            with ui.row().classes("flex-1 items-center justify-end no-wrap h-full gap-0"):
+                ui.label("nutalert").classes("text-2xl font-bold")
+            
+            # Center: UPS selector (placeholder for now, will be injected)
+            ui_elements["header_center"] = ui.row().classes("items-center justify-center")
+            
+            # Right: Status and settings
+            with ui.row().classes("items-center gap-2"):
                 with (
                     ui.card()
                     .classes("p-2 transition-all h-full flex items-center shadow-none")
@@ -35,3 +36,5 @@ def build_header(ui_elements: Dict[str, Any], state):
                     with ui.row().classes("items-center no-wrap gap-x-1 h-full flex-nowrap"):
                         ui_elements["header_status_icon"] = ui.icon(status_icon).style(f"color: {status_color}")
                         ui_elements["header_status_label"] = ui.label(status_label).classes("whitespace-nowrap")
+                
+                ui_elements["nav_button"] = ui.button(icon="settings", on_click=on_settings_click).props("flat round").classes("text-white")
