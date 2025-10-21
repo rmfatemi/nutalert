@@ -1,5 +1,6 @@
 from nicegui import ui
 from typing import Dict, Any
+
 from nutalert.ui.theme import COLOR_THEME
 
 
@@ -17,15 +18,12 @@ def build_header(ui_elements: Dict[str, Any], state, on_settings_click, on_logo_
 
     with ui.header(elevated=False).classes(f"flex px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"):
         with ui.row().classes("w-full items-center justify-between gap-4"):
-            # Left: Logo and title (clickable)
             with ui.row().classes("items-center cursor-pointer gap-1.5").on("click", on_logo_click):
                 ui.image("/assets/logo.svg").classes("w-10 h-9 no-darkreader")
                 ui.label("nutalert").classes("text-2xl font-bold")
             
-            # Center: UPS selector (placeholder for now, will be injected)
             ui_elements["header_center"] = ui.row().classes("items-center justify-center")
             
-            # Right: Status and settings
             with ui.row().classes("items-center gap-2"):
                 with (
                     ui.card()

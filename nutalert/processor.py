@@ -77,7 +77,6 @@ def get_ups_data_and_alerts(config: dict):
                 ok_status = alert_message.split(":", 1)[-1].strip() if ":" in alert_message else alert_message
                 logger.info(f"[{ups_name}] status ok: {ok_status}")
         else:
-            # Device is missing from NUT server
             logger.error(f"UPS device '{ups_name}' is missing from NUT server.")
             all_alerts[ups_name] = ("error: UPS device not found on NUT server", True)
             any_alerting = True
