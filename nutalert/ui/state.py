@@ -1,12 +1,14 @@
-import asyncio
 import yaml
+import asyncio
+
 from nicegui import ui, run
 from typing import Dict, Any
+
 from nutalert.utils import setup_logger
 from nutalert.config import load_config
-from nutalert.processor import get_ups_data_and_alerts
-from nutalert.ui.dashboard import create_dial_gauge
 from nutalert.ui.theme import COLOR_THEME
+from nutalert.ui.dashboard import create_dial_gauge
+from nutalert.processor import get_ups_data_and_alerts
 
 
 logger = setup_logger(__name__)
@@ -23,7 +25,7 @@ class AppState:
         self.alert_message: str = "Awaiting first data poll..."
         self.is_alerting: bool = False
         self.logs: str = "Initializing log view..."
-        self.current_page: str = "dashboard"  # "dashboard" or "settings"
+        self.current_page: str = "dashboard"
         self._initial_load_done: bool = False
         self._selector_refresh_callback = None
         self._rebuild_tabs_callback = None
@@ -55,7 +57,6 @@ class AppState:
                         self._initial_load_done = True
                         if self._selector_refresh_callback:
                             self._selector_refresh_callback()
-                        # Rebuild tabs when UPS names first load
                         if hasattr(self, '_rebuild_tabs_callback') and self._rebuild_tabs_callback:
                             self._rebuild_tabs_callback()
             except Exception as e:
@@ -171,7 +172,6 @@ class AppState:
                 ui_elements["header_status_icon"].props(f"name={status_icon}").style(f"color: {status_color}")
                 ui_elements["header_status_label"].set_text(status_label)
             
-            # Update UPS tabs selection
             if "ups_tabs" in ui_elements:
                 ui_elements["ups_tabs"].set_value(self.selected_ups)
         

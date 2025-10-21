@@ -1,4 +1,5 @@
 from nicegui import ui
+
 from nutalert.ui.theme import COLOR_THEME
 
 
@@ -22,7 +23,6 @@ def ups_selector_row(ui_elements, state, handler):
                     for ups in state.ups_names:
                         ui.tab(ups).classes("transition-all duration-300")
                 ui_elements["ups_tabs"] = tabs
-                # Set initial value
                 if state.selected_ups:
                     tabs.set_value(state.selected_ups)
     
