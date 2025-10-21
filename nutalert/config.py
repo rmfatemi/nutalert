@@ -1,6 +1,7 @@
 import os
 import yaml
 import copy
+
 from typing import Dict, Any
 
 from nutalert.fetcher import fetch_nut_ups_names
@@ -70,23 +71,45 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 def load_config() -> Dict[str, Any]:
     config = copy.deepcopy(DEFAULT_CONFIG)
     config_file_exists = os.path.exists(CONFIG_PATH)
+
     if config_file_exists:
         try:
             with open(CONFIG_PATH, "r") as f:
                 loaded = yaml.safe_load(f)
             if isinstance(loaded, dict):
-                for k, v in loaded.items():
-                    if k == "ups_devices" and isinstance(v, dict):
-                        continue
-                    config[k] = v
-                if "ups_devices" in loaded and isinstance(loaded["ups_devices"], dict):
-                    config["ups_devices"] = copy.deepcopy(loaded["ups_devices"])
+                if "ups_devices" not in loaded:
+                    if "nut_server" in loaded:
+                        config["nut_server"] = copy.deepcopy(loaded["nut_server"])
+                    if "notifications" in loaded:
+                        config["notifications"] = copy.deepcopy(loaded["notifications"])
+                    if "check_interval" in loaded and "check_interval" not in config["nut_server"]:
+                        config["nut_server"]["check_interval"] = loaded["check_interval"]
+
+                    old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
+                    if "alert_mode" in loaded:
+                        old_settings["alert_mode"] = loaded["alert_mode"]
+                    if "basic_alerts" in loaded:
+                        old_settings["basic_alerts"] = copy.deepcopy(loaded["basic_alerts"])
+                    if "formula_alert" in loaded:
+                        old_settings["formula_alert"] = copy.deepcopy(loaded["formula_alert"])
+
+                    ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
+                    if ups_names:
+                        for ups_name in ups_names:
+                            config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
+                else:
+                    for k, v in loaded.items():
+                        if k == "ups_devices" and isinstance(v, dict):
+                            continue
+                        config[k] = v
+                    if "ups_devices" in loaded and isinstance(loaded["ups_devices"], dict):
+                        config["ups_devices"] = copy.deepcopy(loaded["ups_devices"])
         except Exception:
-            pass  # Ignore errors, fall back to defaults
-    # Always ensure ups_devices is a dict
+            pass
+
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
-    # Discover UPS devices
+
     ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
     changed = False
     if ups_names:
@@ -94,9 +117,10 @@ def load_config() -> Dict[str, Any]:
             if ups_name not in config["ups_devices"]:
                 config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
                 changed = True
-    # Do NOT remove missing devices, and do NOT clear ups_devices if none found
+
     if changed or not config_file_exists:
         save_config(config)
+
     return config
 
 
