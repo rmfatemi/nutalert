@@ -19,22 +19,45 @@ async def dashboard_page():
     ui.dark_mode(True)
     ui_elements: Dict[str, Any] = {}
 
-    build_header(ui_elements, state)
-
+    def show_dashboard():
+        state.current_page = "dashboard"
+        ui_elements["main_content"].clear()
+        with ui_elements["main_content"]:
+            build_dashboard_tab(ui_elements, state)
+        # Update header
+        ui_elements["nav_button"].props("icon=settings")
+        ui_elements["tabs_container"].set_visibility(True)
+    
+    def show_settings():
+        state.current_page = "settings"
+        ui_elements["main_content"].clear()
+        with ui_elements["main_content"]:
+            build_configuration_tab(ui_elements, state)
+        # Update header
+        ui_elements["nav_button"].props("icon=home")
+        ui_elements["tabs_container"].set_visibility(False)
+    
     def handle_selection(selected_ups):
         state.selected_ups = selected_ups
-        ups_selector_row.refresh()
-        build_dashboard_tab.refresh()
     
-    state._selector_refresh_callback = ups_selector_row.refresh
+    def toggle_page():
+        if state.current_page == "dashboard":
+            show_settings()
+        else:
+            show_dashboard()
+    
+    build_header(ui_elements, state, on_settings_click=toggle_page, on_logo_click=show_dashboard)
+    
+    # Add UPS selector to header center
+    with ui_elements["header_center"]:
+        ups_selector_row(ui_elements, state, handle_selection)
+    
+    state._selector_refresh_callback = lambda: None  # No-op, not needed anymore
+    state._rebuild_tabs_callback = ui_elements.get("rebuild_ups_tabs")
 
     with ui.element("div").classes(f"w-full px-4 bg-[{COLOR_THEME['background']}] text-[{COLOR_THEME['text']}]"):
-        with ui.tab_panels(ui_elements["main_tabs"], value="Dashboard").classes("w-full"):
-            with ui.tab_panel("Dashboard"):
-                ups_selector_row(state, handle_selection)
-                build_dashboard_tab(ui_elements, state)
-            with ui.tab_panel("Settings"):
-                build_configuration_tab(ui_elements, state)
+        ui_elements["main_content"] = ui.column().classes("w-full")
+        show_dashboard()  # Start with dashboard
 
         ui.timer(interval=1, callback=lambda: state.update_ui_components(ui_elements), active=True)
 

@@ -103,7 +103,6 @@ def create_dial_gauge(
     return fig
 
 
-@ui.refreshable
 def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     ups_values = state.nut_values.get(state.selected_ups, {})
 
@@ -177,5 +176,5 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
 
         with ui.card().classes(f"w-full bg-[{COLOR_THEME['card']}]"):
             ui_elements["raw_data_grid"] = ui.grid().classes(
-                "w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 mt-4 px-2"
+                "w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-4 px-2"
             )

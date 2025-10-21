@@ -23,8 +23,10 @@ class AppState:
         self.alert_message: str = "Awaiting first data poll..."
         self.is_alerting: bool = False
         self.logs: str = "Initializing log view..."
+        self.current_page: str = "dashboard"  # "dashboard" or "settings"
         self._initial_load_done: bool = False
         self._selector_refresh_callback = None
+        self._rebuild_tabs_callback = None
 
     async def poll_ups_data(self):
         while True:
@@ -53,6 +55,9 @@ class AppState:
                         self._initial_load_done = True
                         if self._selector_refresh_callback:
                             self._selector_refresh_callback()
+                        # Rebuild tabs when UPS names first load
+                        if hasattr(self, '_rebuild_tabs_callback') and self._rebuild_tabs_callback:
+                            self._rebuild_tabs_callback()
             except Exception as e:
                 logger.error(f"Error in background polling task: {e}")
                 self.alert_message = f"Error: {e}"
@@ -138,8 +143,8 @@ class AppState:
                 grid.clear()
                 with grid:
                     if ups_values:
-                        for key, value in sorted(ups_values.items()):
-                            with ui.row().classes("w-full items-center justify-between px-4"):
+                        for idx, (key, value) in enumerate(sorted(ups_values.items())):
+                            with ui.row().classes(f"w-full items-center justify-between px-4"):
                                 ui.label(f"{key}:").classes("font-mono text-sm font-bold")
                                 ui.label(str(value)).classes("font-mono text-sm")
 
@@ -165,6 +170,10 @@ class AppState:
                 ui_elements["header_status_card"].style(f"background:{status_bg};")
                 ui_elements["header_status_icon"].props(f"name={status_icon}").style(f"color: {status_color}")
                 ui_elements["header_status_label"].set_text(status_label)
+            
+            # Update UPS tabs selection
+            if "ups_tabs" in ui_elements:
+                ui_elements["ups_tabs"].set_value(self.selected_ups)
         
         except RuntimeError as e:
             if "has been deleted" not in str(e):
