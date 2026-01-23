@@ -16,7 +16,7 @@ _yaml.preserve_quotes = True
 class NutServerConfig(BaseModel):
     host: str
     port: int = Field(gt=0, le=65535)
-    check_interval: int = Field(ge=5)
+    check_interval: int = Field(15, ge=5)
 
 
 class NotificationsConfig(BaseModel):
