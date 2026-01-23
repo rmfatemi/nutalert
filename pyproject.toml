@@ -4,13 +4,13 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "nutalert"
-version = "1.2.0"
+version = "2.0.0"
 description = "nutalert ups monitoring and alert system"
 authors = [
     {name = "Rasool Fatemi", email = "rmfatemi@gmail.com"},
 ]
 readme = "README.md"
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
     "apprise>=1.9.3",
