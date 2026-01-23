@@ -2,7 +2,7 @@ from io import StringIO
 
 from ruamel.yaml import YAML, YAMLError
 from nicegui import ui
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from pydantic import BaseModel, Field, ValidationError
 
 from nutalert.ui.theme import COLOR_THEME
@@ -16,6 +16,11 @@ _yaml = YAML()
 _yaml.preserve_quotes = True
 
 
+class UrlConfig(BaseModel):
+    url: str
+    enabled: bool = True
+
+
 class NutServerConfig(BaseModel):
     host: str
     port: int = Field(gt=0, le=65535)
@@ -26,7 +31,7 @@ class NutServerConfig(BaseModel):
 class NotificationsConfig(BaseModel):
     enabled: bool
     cooldown: int
-    urls: List[Dict[str, Any]]
+    urls: List[Union[str, UrlConfig]]
 
 
 class AppConfig(BaseModel):
@@ -69,7 +74,7 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                         if not state.selected_ups or state.selected_ups not in state.ups_names:
                             state.selected_ups = state.ups_names[0] if state.ups_names else ""
                         logger.info("configuration saved and applied")
-                        ui.notify(save_status, color="positive" if "successfully" in save_status else "negative")
+                        ui.notify(save_status, color="positive" if "successfully" in save_status else "negative", timeout=5)
                     except ValidationError as e:
                         errors = e.errors()
                         if errors:
@@ -98,7 +103,7 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                     success, error_msg = notifier.notify_apprise("Test Notification", "This is a test notification from nutalert.")
                     if success:
                         logger.info("test notification sent successfully")
-                        ui.notify("test notification sent successfully", color="positive")
+                        ui.notify("test notification sent successfully", color="positive", timeout=5)
                     else:
                         logger.error(f"test notification failed: {error_msg}")
                         ui.notify(f"notification failed: {error_msg}", color="negative", multi_line=True, timeout=10)
