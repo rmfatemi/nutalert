@@ -1,5 +1,5 @@
 nut_server:
-  host: docker.home
+  host: localhost
   port: 3493
   check_interval: 15
 notifications:
