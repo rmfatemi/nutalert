@@ -74,6 +74,6 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
             
             ui.link(
                 "Need help? Check the template",
-                "https://github.com/rmfatemi/nutalert/blob/master/config.yaml",
+                "https://github.com/rmfatemi/nutalert/blob/master/config.example.yaml",
                 new_tab=True,
             ).classes("text-sm text-gray-500 hover:text-gray-400")
