@@ -1,4 +1,5 @@
 import apprise
+from typing import Tuple
 
 from nutalert.utils import setup_logger
 
@@ -11,13 +12,14 @@ class NutAlertNotifier:
         self.config = config
         self.container = container_name
 
-    def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> bool:
+    def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> Tuple[bool, str]:
         ap_obj = apprise.Apprise()
         notifications_cfg = self.config.get("notifications", {})
         urls_config = notifications_cfg.get("urls", [])
         if not urls_config:
-            logger.error("no apprise urls configured")
-            return False
+            error_msg = "no apprise urls configured"
+            logger.error(error_msg)
+            return False, error_msg
         if all(isinstance(item, str) for item in urls_config):
             for url in urls_config:
                 if url:
@@ -29,25 +31,31 @@ class NutAlertNotifier:
                     if url:
                         ap_obj.add(url)
         if not ap_obj.servers:
-            logger.error("no enabled apprise urls found")
-            return False
+            error_msg = "no enabled apprise urls found"
+            logger.error(error_msg)
+            return False, error_msg
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
         try:
+            logger.info(f"sending notification to {len(ap_obj.servers)} service(s)...")
             if file_path:
                 result = ap_obj.notify(title=title, body=short_body, attach=file_path)
             else:
                 result = ap_obj.notify(title=title, body=short_body)
             if result:
                 logger.info("notification sent successfully")
-                return True
+                return True, ""
             else:
-                logger.error("notification delivery failed")
-                return False
+                error_msg = "notification delivery failed - check url format and service availability"
+                logger.error(error_msg)
+                return False, error_msg
         except Exception as exc:
-            logger.error(f"notification error: {exc}")
-            return False
+            error_msg = f"notification error: {exc}"
+            logger.error(error_msg)
+            return False, error_msg
 
-    def send_all(self, title: str, message: str, file_path: str | None = None) -> None:
+    def send_all(self, title: str, message: str, file_path: str | None = None) -> bool:
         notifications_cfg = self.config.get("notifications", {})
         if notifications_cfg.get("enabled", False) and notifications_cfg.get("urls"):
-            self.notify_apprise(title, message, file_path)
+            success, _ = self.notify_apprise(title, message, file_path)
+            return success
+        return False

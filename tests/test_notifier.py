@@ -24,11 +24,12 @@ class TestNutAlertNotifier:
         }
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
         assert mock_apprise.add.call_count == 2
         mock_apprise.notify.assert_called_once()
-        assert result is True
+        assert success is True
+        assert error_msg == ""
 
     @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_with_dict_urls(self, mock_apprise_class):
@@ -46,7 +47,7 @@ class TestNutAlertNotifier:
         }
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
         mock_apprise.add.assert_called_once_with("mailto://user@example.com")
         mock_apprise.notify.assert_called_once()
@@ -56,9 +57,10 @@ class TestNutAlertNotifier:
         config = {"notifications": {"urls": []}}
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
-        assert result is False
+        assert success is False
+        assert "no apprise urls configured" in error_msg
 
     @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_no_valid_servers(self, mock_apprise_class):
@@ -73,9 +75,10 @@ class TestNutAlertNotifier:
         }
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
-        assert result is False
+        assert success is False
+        assert "no enabled apprise urls found" in error_msg
 
     @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_exception(self, mock_apprise_class):
@@ -87,9 +90,10 @@ class TestNutAlertNotifier:
         config = {"notifications": {"urls": ["mailto://user@example.com"]}}
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
-        assert result is False
+        assert success is False
+        assert "Network error" in error_msg
 
     @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_truncates_long_message(self, mock_apprise_class):
@@ -101,7 +105,7 @@ class TestNutAlertNotifier:
         notifier = NutAlertNotifier(config)
         
         long_message = "x" * 2500
-        result = notifier.notify_apprise("Test Title", long_message)
+        success, error_msg = notifier.notify_apprise("Test Title", long_message)
         
         call_args = mock_apprise.notify.call_args
         body = call_args[1]["body"]
@@ -131,9 +135,10 @@ class TestNutAlertNotifier:
         }
         notifier = NutAlertNotifier(config)
         
-        notifier.send_all("Title", "Message")
+        result = notifier.send_all("Title", "Message")
         
         mock_apprise.notify.assert_called_once()
+        assert result is True
 
     @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_delivery_failure(self, mock_apprise_class):
@@ -145,6 +150,7 @@ class TestNutAlertNotifier:
         config = {"notifications": {"urls": ["mailto://user@example.com"]}}
         notifier = NutAlertNotifier(config)
         
-        result = notifier.notify_apprise("Test Title", "Test Message")
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
         
-        assert result is False
+        assert success is False
+        assert "delivery failed" in error_msg
