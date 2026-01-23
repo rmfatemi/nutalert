@@ -1,14 +1,12 @@
 FROM python:3.11-alpine AS builder
 
-RUN apk add --no-cache build-base && \
-    pip install --no-cache-dir poetry
+RUN apk add --no-cache build-base
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock* ./
+COPY requirements.txt ./
 
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --no-root
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY nutalert/ nutalert/
 COPY assets/ assets/
