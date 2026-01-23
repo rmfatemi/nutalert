@@ -1,6 +1,7 @@
 import time
 import socket
 import random
+import argparse
 import threading
 
 HOST = "0.0.0.0"
@@ -289,6 +290,11 @@ def handle_client(conn, addr):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Simulate a NUT server with multiple UPS devices")
+    parser.add_argument("--host", default=HOST, help=f"Host to bind to (default: {HOST})")
+    parser.add_argument("--port", type=int, default=PORT, help=f"Port to bind to (default: {PORT})")
+    args = parser.parse_args()
+
     updater_thread = threading.Thread(target=update_dynamic_values, daemon=True)
     updater_thread.start()
 
@@ -296,13 +302,14 @@ def main():
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         try:
-            server_socket.bind((HOST, PORT))
+            server_socket.bind((args.host, args.port))
         except OSError as e:
-            print(f"FATAL: Could not bind to port {PORT}. Is another service running? Error: {e}")
+            print(f"FATAL: Could not bind to port {args.port}. Is another service running? Error: {e}")
             return
 
         server_socket.listen()
-        print(f"NUT server simulator listening on {HOST}:{PORT}")
+        print(f"NUT server simulator listening on {args.host}:{args.port}")
+        print(f"Available UPS devices: {list(UPS_DATA.keys())}")
 
         while True:
             try:
