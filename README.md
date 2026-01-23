@@ -98,8 +98,6 @@ docker-compose up -d
 
 On first start, **nutalert** will auto-detect all UPS devices on your NUT server and generate a default config file. You can then customize settings through the web UI or by editing the config file directly.
 
-See [config.yaml.example](config.yaml.example) for a complete configuration template with all available options.
-
 ## 🔑 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/rmfatemi/nutalert/blob/master/LICENSE) file for details.
