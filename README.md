@@ -6,7 +6,7 @@
 ## Features
 - **Seemless connection** to NUT servers to monitor UPS devices
 - **Multi-UPS support**: monitor multiple UPS devices with individual settings
-- **Multi-architecture support**: runs on amd64, arm64, and armv7 (Raspberry Pi)
+- **Multi-architecture support**: runs on amd64, arm64
 - **Multi-platform support**: **nutalert** supports notifications for
   <p>
   <span>
