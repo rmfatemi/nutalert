@@ -19,7 +19,9 @@ def get_overall_status(state):
     elif has_waiting:
         return "waiting", "hourglass_empty", COLOR_THEME["warning"], "Checking...", COLOR_THEME["error_bg"]
     else:
-        return "ok", "check_circle", COLOR_THEME["success"], "Devices healthy", COLOR_THEME["success_bg"]
+        device_count = len(state.ups_names)
+        status_text = "Device healthy" if device_count == 1 else "Devices healthy"
+        return "ok", "check_circle", COLOR_THEME["success"], status_text, COLOR_THEME["success_bg"]
 
 
 def build_header(ui_elements: Dict[str, Any], state, on_settings_click, on_logo_click):
