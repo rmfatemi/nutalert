@@ -5,6 +5,8 @@
 
 ## ✅ Features
 - **Seemless connection** to NUT servers to monitor UPS devices
+- **Multi-UPS support**: monitor multiple UPS devices with individual settings
+- **Multi-architecture support**: runs on amd64, arm64, and armv7 (Raspberry Pi)
 - **Multi-platform support**: **nutalert** supports notifications for
   <p>
   <span>
@@ -45,16 +47,16 @@ Access the web interface at `http://{server_ip}:8087` to:
 
 ## 🏗️ Setup Guide
 
-Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
+Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upsd` at the same time using this guide.
 
 ### Verify NUT Server Connectivity
-This set up guide assumes you already have NUT server set up. First, verify connectivity from the **nutalert** host:
+If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
 
 ```bash
-/bin/echo -e "list ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
+/bin/echo -e "LIST VAR ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
 ```
 
-A successful response will display a list of available UPS devices from your NUT server confirming that **nutalert** can retrieve your monitoring data.
+A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
 
 ### Docker Deployment Scenarios
 
@@ -62,22 +64,41 @@ If you wish to run your NUT server using Docker alongside nutalert, create a `do
 
 ```yaml
 services:
+  nut-upsd:
+    image: instantlinux/nut-upsd
+    container_name: nut
+    environment:
+      - TZ=America/New_York         # modify if different
+      - API_PASSWORD={PASSWORD}     # required for nut, not nutalert
+      - DRIVER=usbhid-ups           # modify based on your ups model
+    devices:
+      - /dev/bus/usb:/dev/bus/usb   # your ups device
+    ports:
+      - 3493:3493                   # nut port, modify if needed
+    restart: unless-stopped
+
   nutalert:
     image: ghcr.io/rmfatemi/nutalert:latest
     container_name: nutalert
     depends_on:
       - nut-upsd
     ports:
-      - 8087:8087                   # web ui port
+      - 8087:8087                   # web ui port, modify if needed
     volumes:
       - /path/to/config_dir:/config # set the correct config path
     restart: unless-stopped
 ```
+#### Using an External NUT Server
+If your NUT server is hosted separately you can remove `nut-upsd` from template above and add its port to `nutalert`'s ports section.
 
-Start the service with:
+Once your `docker-compose.yaml` file is ready, start the service with:
 ```bash
 docker-compose up -d
 ```
+
+On first start, **nutalert** will auto-detect all UPS devices on your NUT server and generate a default config file. You can then customize settings through the web UI or by editing the config file directly.
+
+See [config.yaml.example](config.yaml.example) for a complete configuration template with all available options.
 
 ## 🔑 License
 
