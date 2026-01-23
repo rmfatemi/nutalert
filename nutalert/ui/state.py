@@ -113,12 +113,13 @@ class AppState:
             if "runtime_plot" in ui_elements:
                 runtime_seconds = float(ups_values.get("battery.runtime", 0.0))
                 runtime_minutes = runtime_seconds / 60 if runtime_seconds else 0.0
+                runtime_range_max = max(180, runtime_warn * 2)
                 ui_elements["runtime_plot"].figure = create_dial_gauge(
                     runtime_minutes,
                     "Runtime (min)",
                     "runtime",
                     0,
-                    runtime_high,
+                    runtime_range_max,
                     self.config,
                     warn=runtime_warn,
                     high=runtime_high,
