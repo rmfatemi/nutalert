@@ -11,7 +11,6 @@ from nutalert.fetcher import fetch_nut_ups_names
 
 CONFIG_PATH = os.environ.get("CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml")))
 
-# ruamel.yaml instance configured for comment preservation
 _yaml = YAML()
 _yaml.preserve_quotes = True
 _yaml.default_flow_style = False
@@ -86,15 +85,12 @@ def load_config() -> Dict[str, Any]:
         except Exception:
             loaded = None
 
-    # If no valid loaded config, start fresh
     if not isinstance(loaded, dict):
         loaded = None
-    
-    # Build the runtime config (plain dict) from loaded or defaults
+
     config = copy.deepcopy(DEFAULT_CONFIG)
     
     if loaded:
-        # Handle legacy config format (no ups_devices key)
         if "ups_devices" not in loaded:
             if "nut_server" in loaded:
                 config["nut_server"] = _deep_to_dict(loaded["nut_server"])
@@ -116,7 +112,6 @@ def load_config() -> Dict[str, Any]:
                 for ups_name in ups_names:
                     config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
         else:
-            # Modern config format
             for k, v in loaded.items():
                 if k == "ups_devices":
                     continue
@@ -127,7 +122,6 @@ def load_config() -> Dict[str, Any]:
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
 
-    # Auto-discover new UPS devices
     ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
     new_devices = []
     if ups_names:
@@ -136,7 +130,6 @@ def load_config() -> Dict[str, Any]:
                 config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
                 new_devices.append(ups_name)
 
-    # Save if we discovered new devices or file doesn't exist
     if new_devices or not config_file_exists:
         _save_with_new_devices(loaded, new_devices, config_file_exists)
 
@@ -145,7 +138,6 @@ def load_config() -> Dict[str, Any]:
 
 def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
     if config_file_exists and loaded is not None:
-        # Add new devices to the existing CommentedMap to preserve comments
         if "ups_devices" not in loaded:
             loaded["ups_devices"] = {}
         for ups_name in new_devices:
@@ -156,7 +148,6 @@ def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
         except Exception:
             pass
     else:
-        # No existing file or couldn't load - create fresh
         config = copy.deepcopy(DEFAULT_CONFIG)
         for ups_name in new_devices:
             config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
@@ -186,7 +177,6 @@ def save_config(config: Dict[str, Any]) -> str:
 
 def save_config_text(yaml_text: str) -> str:
     try:
-        # Validate it's valid YAML first
         _yaml.load(StringIO(yaml_text))
         with open(CONFIG_PATH, "w") as f:
             f.write(yaml_text)
