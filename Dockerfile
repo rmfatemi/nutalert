@@ -10,7 +10,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
 
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --without dev --no-root
+    poetry install --no-interaction --no-ansi --no-root
 
 COPY nutalert/ nutalert/
 COPY assets/ assets/
@@ -41,4 +41,4 @@ ENV CONFIG_PATH=/config/config.yaml
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:8087/ || exit 1
 
-CMD ["python", "-m", "nutalert.dashboard"]
+CMD ["python", "-m", "nutalert.app"]
