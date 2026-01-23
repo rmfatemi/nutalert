@@ -10,7 +10,7 @@ authors = [
     {name = "Rasool Fatemi", email = "rmfatemi@gmail.com"},
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "pyyaml>=6.0",
     "apprise>=1.9.3",
