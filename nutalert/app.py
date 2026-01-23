@@ -1,4 +1,5 @@
 import yaml
+import asyncio
 
 from nicegui import ui, app
 from typing import Dict, Any
@@ -26,6 +27,8 @@ async def dashboard_page():
             build_dashboard_tab(ui_elements, state)
         ui_elements["nav_button"].props("icon=settings")
         ui_elements["tabs_container"].set_visibility(True)
+        if "dashboard_container" in ui_elements:
+            ui_elements["dashboard_container"].classes(remove="opacity-0", add="opacity-100")
     
     def show_settings():
         state.current_page = "settings"
@@ -35,8 +38,16 @@ async def dashboard_page():
         ui_elements["nav_button"].props("icon=home")
         ui_elements["tabs_container"].set_visibility(False)
     
-    def handle_selection(selected_ups):
+    async def handle_selection(selected_ups):
+        if selected_ups == state.selected_ups:
+            return
+        if "dashboard_container" in ui_elements:
+            ui_elements["dashboard_container"].classes(remove="opacity-100", add="opacity-0")
+            await asyncio.sleep(0.15)
         state.selected_ups = selected_ups
+        state.update_ui_components(ui_elements)
+        if "dashboard_container" in ui_elements:
+            ui_elements["dashboard_container"].classes(remove="opacity-0", add="opacity-100")
     
     def toggle_page():
         if state.current_page == "dashboard":
