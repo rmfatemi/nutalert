@@ -59,7 +59,7 @@ class AppState:
                         if hasattr(self, '_rebuild_tabs_callback') and self._rebuild_tabs_callback:
                             self._rebuild_tabs_callback()
             except Exception as e:
-                logger.error(f"Error in background polling task: {e}")
+                logger.error(f"polling error: {e}")
                 self.alert_message = f"Error: {e}"
                 self.is_alerting = True
 
@@ -168,4 +168,4 @@ class AppState:
         
         except RuntimeError as e:
             if "has been deleted" not in str(e):
-                logger.error(f"Error updating UI components: {e}")
+                logger.error(f"ui update error: {e}")

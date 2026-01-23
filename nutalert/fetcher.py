@@ -28,7 +28,7 @@ def fetch_nut_ups_names(host, port, timeout=2):
                     if len(parts) >= 2:
                         ups_names.append(parts[1])
     except socket.error as e:
-        logger.error(f"socket error when contacting nut server: {e}")
+        logger.error(f"nut server connection failed: {e}")
     return ups_names
 
 
@@ -47,5 +47,5 @@ def fetch_nut_data(host, port, ups_name, timeout=2):
                     break
                 raw_nut_data += chunk.decode("utf-8", errors="replace")
     except socket.error as e:
-        logger.error(f"socket error when contacting nut server: {e}")
+        logger.error(f"nut server connection failed: {e}")
     return raw_nut_data

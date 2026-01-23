@@ -16,7 +16,7 @@ class NutAlertNotifier:
         notifications_cfg = self.config.get("notifications", {})
         urls_config = notifications_cfg.get("urls", [])
         if not urls_config:
-            logger.error("no apprise urls found in configuration.")
+            logger.error("no apprise urls configured")
             return False
         if all(isinstance(item, str) for item in urls_config):
             for url in urls_config:
@@ -29,7 +29,7 @@ class NutAlertNotifier:
                     if url:
                         ap_obj.add(url)
         if not ap_obj.servers:
-            logger.error("no enabled and valid apprise urls found")
+            logger.error("no enabled apprise urls found")
             return False
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
         try:
@@ -38,13 +38,13 @@ class NutAlertNotifier:
             else:
                 result = ap_obj.notify(title=title, body=short_body)
             if result:
-                logger.info("apprise notification sent successfully")
+                logger.info("notification sent successfully")
                 return True
             else:
-                logger.error("apprise notification failed to deliver")
+                logger.error("notification delivery failed")
                 return False
         except Exception as exc:
-            logger.error("error sending apprise notification: %s", exc)
+            logger.error(f"notification error: {exc}")
             return False
 
     def send_all(self, title: str, message: str, file_path: str | None = None) -> None:
