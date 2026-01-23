@@ -17,13 +17,19 @@ notifications:
   cooldown: 60                   # Minimum seconds between repeated alerts
   urls:
     # Apprise notification URLs - see https://github.com/caronc/apprise
-    # Supports 80+ services including:
-    - tgram://bot_token/chat_id
-    - discord://webhook_id/webhook_token
-    - slack://token_a/token_b/token_c
-    - mailto://user:pass@smtp.example.com?to=alerts@example.com
-    - gotify://hostname/token
-    - pushover://user_key@app_token
+    # Supports 80+ services including Telegram, Discord, Slack, etc.
+    #
+    # Simple format (always enabled):
+    # - tgram://bot_token/chat_id
+    # - discord://webhook_id/webhook_token
+    #
+    # Extended format (per-destination enable/disable):
+    - url: tgram://bot_token/chat_id
+      enabled: true
+    - url: discord://webhook_id/webhook_token
+      enabled: false
+    - url: gotify://hostname/token
+      enabled: true
 
 # UPS Devices Configuration
 # -------------------------
