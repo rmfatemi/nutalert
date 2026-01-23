@@ -10,7 +10,6 @@ notifications:
     enabled: false
 ups_devices:
   apc:
-  apc:
     alert_mode: basic
     gauge_settings:
       load:
