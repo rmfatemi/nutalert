@@ -122,7 +122,10 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
     voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
 
-    with ui.column().classes("w-full"):
+    ui_elements["dashboard_container"] = ui.column().classes(
+        "w-full transition-opacity duration-150 ease-in-out opacity-100"
+    )
+    with ui_elements["dashboard_container"]:
         with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full gap-1"):
             ui_elements["load_plot"] = ui.plotly(
                 create_dial_gauge(
