@@ -76,10 +76,6 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
 def load_config() -> Dict[str, Any]:
-    """Load config, auto-discover UPS devices, and return as plain dict.
-    
-    When new devices are discovered, they're added to the file while preserving comments.
-    """
     config_file_exists = os.path.exists(CONFIG_PATH)
     loaded = None
     
@@ -148,7 +144,6 @@ def load_config() -> Dict[str, Any]:
 
 
 def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
-    """Save config preserving comments when adding new UPS devices."""
     if config_file_exists and loaded is not None:
         # Add new devices to the existing CommentedMap to preserve comments
         if "ups_devices" not in loaded:
@@ -173,7 +168,6 @@ def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
 
 
 def _deep_to_dict(obj):
-    """Recursively convert ruamel.yaml CommentedMap/CommentedSeq to plain dict/list."""
     if hasattr(obj, "items"):
         return {k: _deep_to_dict(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -182,7 +176,6 @@ def _deep_to_dict(obj):
 
 
 def save_config(config: Dict[str, Any]) -> str:
-    """Save config dict to file. Comments are NOT preserved when saving from dict."""
     try:
         with open(CONFIG_PATH, "w") as f:
             _yaml.dump(config, f)
@@ -192,7 +185,6 @@ def save_config(config: Dict[str, Any]) -> str:
 
 
 def save_config_text(yaml_text: str) -> str:
-    """Save raw YAML text to file. Comments ARE preserved."""
     try:
         # Validate it's valid YAML first
         _yaml.load(StringIO(yaml_text))
@@ -204,7 +196,6 @@ def save_config_text(yaml_text: str) -> str:
 
 
 def load_config_text() -> str:
-    """Load config file as raw text (preserving comments for editor display)."""
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, "r") as f:
             return f.read()
