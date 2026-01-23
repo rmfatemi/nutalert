@@ -1,11 +1,10 @@
-import yaml
 import asyncio
 
 from nicegui import ui, run
 from typing import Dict, Any
 
 from nutalert.utils import setup_logger
-from nutalert.config import load_config
+from nutalert.config import load_config, load_config_text
 from nutalert.ui.dashboard import create_dial_gauge
 from nutalert.processor import get_ups_data_and_alerts
 
@@ -16,7 +15,7 @@ logger = setup_logger(__name__)
 class AppState:
     def __init__(self):
         self.config = load_config()
-        self.config_text = yaml.dump(self.config, sort_keys=False, indent=2)
+        self.config_text = load_config_text()
         self.nut_values: Dict[str, Dict[str, Any]] = {}
         self.ups_names: list[str] = list(self.config.get("ups_devices", {}).keys())
         self.ups_status: Dict[str, str] = {name: "waiting" for name in self.ups_names}
