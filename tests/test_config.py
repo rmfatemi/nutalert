@@ -126,7 +126,6 @@ ups_devices:
 
     @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_filters_nonexistent_ups(self, mock_fetch):
-        """Test that UPS devices not found on the server are filtered out."""
         mock_fetch.return_value = ["new_ups"]
         
         test_config = """
@@ -152,11 +151,9 @@ ups_devices:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 with patch("nutalert.config.save_config"):
                     config = load_config()
-            
-            # Old UPS devices should be filtered out
+
             assert "old_ups_1" not in config["ups_devices"]
             assert "old_ups_2" not in config["ups_devices"]
-            # New UPS should be auto-discovered
             assert "new_ups" in config["ups_devices"]
             assert len(config["ups_devices"]) == 1
         finally:
