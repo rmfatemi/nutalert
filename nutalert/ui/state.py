@@ -36,14 +36,24 @@ class AppState:
                     nut_values, all_alerts, is_alerting, new_logs = result
                     self.nut_values = nut_values or self.nut_values
                     new_status = {}
-                    for ups_name in self.config.get("ups_devices", {}):
-                        if ups_name in all_alerts:
-                            _, ups_is_alerting = all_alerts[ups_name]
-                            new_status[ups_name] = "error" if ups_is_alerting else "ok"
-                        elif ups_name in nut_values:
-                            new_status[ups_name] = "ok"
-                        else:
-                            new_status[ups_name] = self.ups_status.get(ups_name, "waiting")
+                    
+                    if isinstance(all_alerts, dict):
+                        for ups_name in self.config.get("ups_devices", {}):
+                            if ups_name in all_alerts:
+                                _, ups_is_alerting = all_alerts[ups_name]
+                                new_status[ups_name] = "error" if ups_is_alerting else "ok"
+                            elif ups_name in nut_values:
+                                new_status[ups_name] = "ok"
+                            else:
+                                new_status[ups_name] = self.ups_status.get(ups_name, "waiting")
+                    else:
+                        for ups_name in self.config.get("ups_devices", {}):
+                            new_status[ups_name] = "error" if is_alerting else "waiting"
+                    
+                    if is_alerting and not new_status:
+                        for ups_name in self.config.get("ups_devices", {}):
+                            new_status[ups_name] = "error"
+                    
                     self.ups_status = new_status
                     self.ups_names = list(self.config.get("ups_devices", {}).keys())
                     if not self.selected_ups or self.selected_ups not in self.ups_names:
@@ -60,10 +70,12 @@ class AppState:
                             self._rebuild_tabs_callback()
             except Exception as e:
                 logger.error(f"polling error: {e}")
-                self.alert_message = f"Error: {e}"
+                self.alert_message = f"error: {e}"
                 self.is_alerting = True
+                for ups_name in self.ups_status:
+                    self.ups_status[ups_name] = "error"
 
-            await asyncio.sleep(self.config.get("check_interval", 15))
+            await asyncio.sleep(self.config.get("nut_server", {}).get("check_interval", 15))
 
     def update_ui_components(self, ui_elements: Dict[str, Any]):
         try:
