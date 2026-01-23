@@ -21,7 +21,7 @@
     <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/pushover.svg" width="20">
     <img src="https://github.com/homarr-labs/dashboard-icons/blob/main/svg/home-assistant.svg" width="20">
   </span>
-   and many more Thanks to <a href="https://github.com/caronc/apprise">Apprise</a> integration.
+   and many more thanks to <a href="https://github.com/caronc/apprise">Apprise</a> integration.
 </p>
 
 - **Modern Web UI** monitor UPS device data and adjust settings
