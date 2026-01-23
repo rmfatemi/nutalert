@@ -5,6 +5,8 @@
 
 ## ✅ Features
 - **Seemless connection** to NUT servers to monitor UPS devices
+- **Multi-UPS support**: monitor multiple UPS devices with individual settings
+- **Multi-architecture support**: runs on amd64, arm64, and armv7 (Raspberry Pi)
 - **Multi-platform support**: **nutalert** supports notifications for
   <p>
   <span>
@@ -45,13 +47,13 @@ Access the web interface at `http://{server_ip}:8087` to:
 
 ## 🏗️ Setup Guide
 
-Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upds` at the same time using this guide.
+Before beginning your deployment, make sure your NUT server is operational. The instructions below cover two deployment scenarios: running both the NUT server and **nutalert** in a single Docker environment, or hosting **nutalert** while your NUT server runs externally. You can skip this step if you are setting up `nut-upsd` at the same time using this guide.
 
 ### Verify NUT Server Connectivity
 If your NUT server is hosted externally, first verify connectivity from the **nutalert** host:
 
 ```bash
-/bin/echo -e "list var ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
+/bin/echo -e "LIST VAR ups\r" | /usr/bin/nc -w 1 <nut-server-ip> 3493
 ```
 
 A successful response will display a list of available UPS variables from your NUT server confirming that **nutalert** can retrieve your monitoring data.
@@ -89,10 +91,12 @@ services:
 #### Using an External NUT Server
 If your NUT server is hosted separately you can remove `nut-upsd` from template above and add its port to `nutalert`'s ports section.
 
-Once your `docker-compose.yaml` and `config.yaml` file are ready, start the service with:
-```
+Once your `docker-compose.yaml` file is ready, start the service with:
+```bash
 docker-compose up -d
 ```
+
+On first start, **nutalert** will auto-detect all UPS devices on your NUT server and generate a default config file. You can then customize settings through the web UI or by editing the config file directly.
 
 ## 🔑 License
 
