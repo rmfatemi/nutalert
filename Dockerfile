@@ -1,9 +1,7 @@
 FROM python:3.11-alpine AS builder
 
-RUN apk add --no-cache build-base curl && \
-    curl -sSL https://install.python-poetry.org | python3 -
-
-ENV PATH="/root/.local/bin:$PATH"
+RUN apk add --no-cache build-base && \
+    pip install --no-cache-dir poetry
 
 WORKDIR /app
 
