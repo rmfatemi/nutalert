@@ -152,11 +152,11 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
             )
             ui_elements["runtime_plot"] = ui.plotly(
                 create_dial_gauge(
-                    float(ups_values.get("actual_runtime_minutes", 0.0)),
+                    float(ups_values.get("battery.runtime", 0.0)) / 60.0,
                     "Runtime (min)",
                     "runtime",
                     0,
-                    180,
+                    max(180, runtime_warn * 2),
                     state.config,
                     warn=runtime_warn,
                     high=runtime_high,
