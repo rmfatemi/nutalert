@@ -4,17 +4,26 @@ from typing import Dict, Any
 from nutalert.ui.theme import COLOR_THEME
 
 
-def build_header(ui_elements: Dict[str, Any], state, on_settings_click, on_logo_click):
-    all_ok = True
+def get_overall_status(state):
+    has_error = False
+    has_waiting = False
     for ups in state.ups_names:
-        status = getattr(state, "ups_status", {}).get(ups, "ok")
-        if status != "ok":
-            all_ok = False
-            break
-    status_icon = "check_circle" if all_ok else "warning"
-    status_color = COLOR_THEME["success"] if all_ok else COLOR_THEME["warning"]
-    status_label = "Devices healthy" if all_ok else "Check status"
-    status_bg = COLOR_THEME["success_bg"] if all_ok else COLOR_THEME["error_bg"]
+        status = state.ups_status.get(ups, "waiting")
+        if status == "error":
+            has_error = True
+        elif status == "waiting":
+            has_waiting = True
+    
+    if has_error:
+        return "error", "warning", COLOR_THEME["warning"], "Check status", COLOR_THEME["error_bg"]
+    elif has_waiting:
+        return "waiting", "hourglass_empty", COLOR_THEME["warning"], "Checking...", COLOR_THEME["error_bg"]
+    else:
+        return "ok", "check_circle", COLOR_THEME["success"], "Devices healthy", COLOR_THEME["success_bg"]
+
+
+def build_header(ui_elements: Dict[str, Any], state, on_settings_click, on_logo_click):
+    _, status_icon, status_color, status_label, status_bg = get_overall_status(state)
 
     with ui.header(elevated=False).classes(f"flex px-4 py-2 bg-[{COLOR_THEME['log_bg']}] text-[{COLOR_THEME['text']}]"):
         with ui.row().classes("w-full items-center justify-between gap-4"):
