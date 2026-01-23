@@ -45,7 +45,6 @@ class AppState:
                         else:
                             self.ups_status[ups_name] = "ok"
                     
-                    set(self.ups_names)
                     self.ups_names = list(self.nut_values.keys())
                     if not self.selected_ups or self.selected_ups not in self.ups_names:
                         self.selected_ups = self.ups_names[0] if self.ups_names else ""
