@@ -30,7 +30,7 @@ def prepare_ups_env(nut_values):
 
 def check_battery_charge(basic_alerts, env):
     if "min" not in basic_alerts["battery_charge"]:
-        logger.error("missing required config: basic_alerts.battery_charge.min")
+        logger.error("config missing: basic_alerts.battery_charge.min")
         return "config error: battery_charge.min not specified"
 
     min_charge = basic_alerts["battery_charge"]["min"]
@@ -41,7 +41,7 @@ def check_battery_charge(basic_alerts, env):
 
 def check_runtime(basic_alerts, env):
     if "min" not in basic_alerts["runtime"]:
-        logger.error("missing required config: basic_alerts.runtime.min")
+        logger.error("config missing: basic_alerts.runtime.min")
         return "config error: runtime.min not specified"
 
     min_runtime = basic_alerts["runtime"]["min"]
@@ -54,7 +54,7 @@ def check_runtime(basic_alerts, env):
 
 def check_load(basic_alerts, env):
     if "max" not in basic_alerts["load"]:
-        logger.error("missing required config: basic_alerts.load.max")
+        logger.error("config missing: basic_alerts.load.max")
         return "config error: load.max not specified"
 
     max_load = basic_alerts["load"]["max"]
@@ -70,7 +70,7 @@ def check_input_voltage(basic_alerts, env):
         return None
 
     if "min" not in basic_alerts["input_voltage"] or "max" not in basic_alerts["input_voltage"]:
-        logger.error("missing required config: basic_alerts.input_voltage.min or max")
+        logger.error("config missing: basic_alerts.input_voltage.min or max")
         return "config error: voltage min/max not specified"
 
     min_voltage = basic_alerts["input_voltage"]["min"]
@@ -87,7 +87,7 @@ def check_ups_status(basic_alerts, env, ups_name=None):
         return None
 
     if "acceptable" not in basic_alerts["ups_status"]:
-        logger.error("missing required config: basic_alerts.ups_status.acceptable")
+        logger.error("config missing: basic_alerts.ups_status.acceptable")
         return "config error: acceptable ups statuses not defined"
 
     acceptable_statuses = basic_alerts["ups_status"]["acceptable"]
@@ -105,9 +105,9 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str, ups_
 
     global previous_ups_status
     key = ups_name or "default"
-    logger.info("'alert_when_status_changed' is true")
+    logger.info("alert_when_status_changed enabled")
     if previous_ups_status.get(key) == current_status:
-        logger.info(f"ups status unchanged: {current_status} (no alert)")
+        logger.info(f"status unchanged: {current_status} (skipping alert)")
         return True
 
     previous_ups_status[key] = current_status
@@ -120,7 +120,7 @@ def _is_enabled_alert_when_status_changed(basic_alerts) -> bool:
 
 def check_basic_alerts(config, env, ups_name=None):
     if "basic_alerts" not in config:
-        logger.error("missing required config: basic_alerts")
+        logger.error("config missing: basic_alerts")
         return ["config error: basic_alerts not specified"]
 
     basic_alerts = config["basic_alerts"]
@@ -156,13 +156,13 @@ def check_basic_alerts(config, env, ups_name=None):
 
 def check_formula_alert(config, env):
     if "formula_alert" not in config:
-        logger.error("missing required config: formula_alert")
+        logger.error("config missing: formula_alert")
         return True, "configuration error - formula_alert not specified"
 
     formula_alert = config["formula_alert"]
 
     if "expression" not in formula_alert:
-        logger.error("missing required config: formula_alert.expression")
+        logger.error("config missing: formula_alert.expression")
         return True, "configuration error - formula expression not specified"
 
     formula_expr = formula_alert["expression"]
@@ -187,7 +187,7 @@ def check_formula_alert(config, env):
                 ),
             )
     except Exception as e:
-        error_msg = f"error evaluating formula '{formula_expr}': {e}"
+        error_msg = f"formula evaluation error: {e}"
         logger.error(error_msg)
         return True, f"{error_msg}"
 
@@ -196,7 +196,7 @@ def should_alert(nut_values, config, ups_name=None):
     env = prepare_ups_env(nut_values)
 
     if "alert_mode" not in config:
-        logger.error("missing required config: alert_mode")
+        logger.error("config missing: alert_mode")
         return True, "configuration error - alert_mode not specified"
 
     alert_mode = config["alert_mode"]
@@ -218,5 +218,5 @@ def should_alert(nut_values, config, ups_name=None):
     elif alert_mode == "formula":
         return check_formula_alert(config, env)
     else:
-        logger.error(f"unknown alert mode '{alert_mode}'")
+        logger.error(f"unknown alert_mode: {alert_mode}")
         return True, f"unknown alert mode '{alert_mode}'"

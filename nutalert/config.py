@@ -7,7 +7,10 @@ from typing import Dict, Any
 from ruamel.yaml import YAML
 
 from nutalert.fetcher import fetch_nut_ups_names
+from nutalert.utils import setup_logger
 
+
+logger = setup_logger("config")
 
 CONFIG_PATH = os.environ.get("CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml")))
 
@@ -89,9 +92,11 @@ def load_config() -> Dict[str, Any]:
         loaded = None
 
     config = copy.deepcopy(DEFAULT_CONFIG)
+    migrated_from_old_format = False
     
     if loaded:
         if "ups_devices" not in loaded:
+            migrated_from_old_format = True
             if "nut_server" in loaded:
                 config["nut_server"] = _deep_to_dict(loaded["nut_server"])
             if "notifications" in loaded:
@@ -135,23 +140,55 @@ def load_config() -> Dict[str, Any]:
             if name in ups_names
         }
 
-    if new_devices or not config_file_exists:
-        _save_with_new_devices(loaded, new_devices, config_file_exists)
+    if new_devices or migrated_from_old_format or not config_file_exists:
+        _save_with_new_devices(loaded, new_devices, config_file_exists, migrated_from_old_format)
 
     return config
 
 
-def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
+def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool, migrated_from_old_format: bool = False):
     if config_file_exists and loaded is not None:
-        if "ups_devices" not in loaded:
+        was_old_format = "ups_devices" not in loaded
+        if was_old_format:
+            logger.info("migrating config from v1.x to v2.x format...")
             loaded["ups_devices"] = {}
+            
+            old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
+            if "alert_mode" in loaded:
+                old_settings["alert_mode"] = loaded["alert_mode"]
+            if "basic_alerts" in loaded:
+                old_settings["basic_alerts"] = _deep_to_dict(loaded["basic_alerts"])
+            if "formula_alert" in loaded:
+                old_settings["formula_alert"] = _deep_to_dict(loaded["formula_alert"])
+
+            host = loaded.get("nut_server", {}).get("host", "127.0.0.1")
+            port = loaded.get("nut_server", {}).get("port", 3493)
+            ups_names = fetch_nut_ups_names(host, port)
+            if ups_names:
+                for ups_name in ups_names:
+                    loaded["ups_devices"][ups_name] = copy.deepcopy(old_settings)
+                    logger.info(f"migrated settings for ups '{ups_name}'")
+                    
         for ups_name in new_devices:
-            loaded["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
+            if ups_name not in loaded.get("ups_devices", {}):
+                if "ups_devices" not in loaded:
+                    loaded["ups_devices"] = {}
+                loaded["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
+                logger.info(f"discovered new ups device '{ups_name}'")
+        
+        if was_old_format:
+            for old_key in ["alert_mode", "basic_alerts", "formula_alert", "check_interval"]:
+                loaded.pop(old_key, None)
+        
         try:
             with open(CONFIG_PATH, "w") as f:
                 _yaml.dump(loaded, f)
-        except Exception:
-            pass
+            if was_old_format:
+                logger.info("config migration completed successfully")
+            elif new_devices:
+                logger.info(f"config updated with {len(new_devices)} new device(s)")
+        except Exception as e:
+            logger.error(f"failed to save config: {e}")
     else:
         config = copy.deepcopy(DEFAULT_CONFIG)
         for ups_name in new_devices:
@@ -159,8 +196,9 @@ def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
         try:
             with open(CONFIG_PATH, "w") as f:
                 _yaml.dump(config, f)
-        except Exception:
-            pass
+            logger.info(f"created new config with {len(new_devices)} ups device(s)")
+        except Exception as e:
+            logger.error(f"failed to create config: {e}")
 
 
 def _deep_to_dict(obj):
