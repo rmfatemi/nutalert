@@ -1,13 +1,19 @@
 import os
-import yaml
 import copy
 
+from io import StringIO
 from typing import Dict, Any
+
+from ruamel.yaml import YAML
 
 from nutalert.fetcher import fetch_nut_ups_names
 
 
 CONFIG_PATH = os.environ.get("CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml")))
+
+_yaml = YAML()
+_yaml.preserve_quotes = True
+_yaml.default_flow_style = False
 
 
 DEFAULT_UPS_CONFIG: Dict[str, Any] = {
@@ -69,69 +75,118 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
 def load_config() -> Dict[str, Any]:
-    config = copy.deepcopy(DEFAULT_CONFIG)
     config_file_exists = os.path.exists(CONFIG_PATH)
-
+    loaded = None
+    
     if config_file_exists:
         try:
             with open(CONFIG_PATH, "r") as f:
-                loaded = yaml.safe_load(f)
-            if isinstance(loaded, dict):
-                if "ups_devices" not in loaded:
-                    if "nut_server" in loaded:
-                        config["nut_server"] = copy.deepcopy(loaded["nut_server"])
-                    if "notifications" in loaded:
-                        config["notifications"] = copy.deepcopy(loaded["notifications"])
-                    if "check_interval" in loaded and "check_interval" not in config["nut_server"]:
-                        config["nut_server"]["check_interval"] = loaded["check_interval"]
-
-                    old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
-                    if "alert_mode" in loaded:
-                        old_settings["alert_mode"] = loaded["alert_mode"]
-                    if "basic_alerts" in loaded:
-                        old_settings["basic_alerts"] = copy.deepcopy(loaded["basic_alerts"])
-                    if "formula_alert" in loaded:
-                        old_settings["formula_alert"] = copy.deepcopy(loaded["formula_alert"])
-
-                    ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
-                    if ups_names:
-                        for ups_name in ups_names:
-                            config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
-                else:
-                    for k, v in loaded.items():
-                        if k == "ups_devices" and isinstance(v, dict):
-                            continue
-                        config[k] = v
-                    if "ups_devices" in loaded and isinstance(loaded["ups_devices"], dict):
-                        config["ups_devices"] = copy.deepcopy(loaded["ups_devices"])
+                loaded = _yaml.load(f)
         except Exception:
-            pass
+            loaded = None
+
+    if not isinstance(loaded, dict):
+        loaded = None
+
+    config = copy.deepcopy(DEFAULT_CONFIG)
+    
+    if loaded:
+        if "ups_devices" not in loaded:
+            if "nut_server" in loaded:
+                config["nut_server"] = _deep_to_dict(loaded["nut_server"])
+            if "notifications" in loaded:
+                config["notifications"] = _deep_to_dict(loaded["notifications"])
+            if "check_interval" in loaded and "check_interval" not in config["nut_server"]:
+                config["nut_server"]["check_interval"] = loaded["check_interval"]
+
+            old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
+            if "alert_mode" in loaded:
+                old_settings["alert_mode"] = loaded["alert_mode"]
+            if "basic_alerts" in loaded:
+                old_settings["basic_alerts"] = _deep_to_dict(loaded["basic_alerts"])
+            if "formula_alert" in loaded:
+                old_settings["formula_alert"] = _deep_to_dict(loaded["formula_alert"])
+
+            ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
+            if ups_names:
+                for ups_name in ups_names:
+                    config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
+        else:
+            for k, v in loaded.items():
+                if k == "ups_devices":
+                    continue
+                config[k] = _deep_to_dict(v) if isinstance(v, dict) else v
+            if isinstance(loaded.get("ups_devices"), dict):
+                config["ups_devices"] = _deep_to_dict(loaded["ups_devices"])
 
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
 
     ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
-    changed = False
+    new_devices = []
     if ups_names:
         for ups_name in ups_names:
             if ups_name not in config["ups_devices"]:
                 config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
-                changed = True
+                new_devices.append(ups_name)
 
-    if changed or not config_file_exists:
-        save_config(config)
+    if new_devices or not config_file_exists:
+        _save_with_new_devices(loaded, new_devices, config_file_exists)
 
     return config
 
 
-def save_config(config: Dict[str, Any]) -> str:
-    class NoAliasDumper(yaml.SafeDumper):
-        def ignore_aliases(self, data):
-            return True
+def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool):
+    if config_file_exists and loaded is not None:
+        if "ups_devices" not in loaded:
+            loaded["ups_devices"] = {}
+        for ups_name in new_devices:
+            loaded["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
+        try:
+            with open(CONFIG_PATH, "w") as f:
+                _yaml.dump(loaded, f)
+        except Exception:
+            pass
+    else:
+        config = copy.deepcopy(DEFAULT_CONFIG)
+        for ups_name in new_devices:
+            config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
+        try:
+            with open(CONFIG_PATH, "w") as f:
+                _yaml.dump(config, f)
+        except Exception:
+            pass
 
+
+def _deep_to_dict(obj):
+    if hasattr(obj, "items"):
+        return {k: _deep_to_dict(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_deep_to_dict(item) for item in obj]
+    return obj
+
+
+def save_config(config: Dict[str, Any]) -> str:
     try:
         with open(CONFIG_PATH, "w") as f:
-            yaml.dump(config, f, sort_keys=False, Dumper=NoAliasDumper)
+            _yaml.dump(config, f)
         return "config saved successfully."
     except Exception as e:
         return f"failed to save config: {e}"
+
+
+def save_config_text(yaml_text: str) -> str:
+    try:
+        _yaml.load(StringIO(yaml_text))
+        with open(CONFIG_PATH, "w") as f:
+            f.write(yaml_text)
+        return "config saved successfully."
+    except Exception as e:
+        return f"failed to save config: {e}"
+
+
+def load_config_text() -> str:
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r") as f:
+            return f.read()
+    return ""

@@ -21,8 +21,8 @@ def create_dial_gauge(
     basic_alerts = config.get("basic_alerts", {})
 
     if metric_type == "load":
+        warn_load = warn if warn is not None else basic_alerts.get("load", {}).get("max", 90) / 2
         max_load = high if high is not None else basic_alerts.get("load", {}).get("max", 90)
-        warn_load = warn if warn is not None else max_load / 2
         steps = [
             {"range": [0, warn_load], "color": COLOR_THEME["success"]},
             {"range": [warn_load, max_load], "color": COLOR_THEME["warning"]},
@@ -34,30 +34,29 @@ def create_dial_gauge(
             else COLOR_THEME["warning"] if value > warn_load else COLOR_THEME["success"]
         )
     elif metric_type == "charge":
-        min_charge = high if high is not None else basic_alerts.get("battery_charge", {}).get("min", 20)
-        warn_low = warn if warn is not None else min_charge - 5
-        warn_high = min_charge + 5
+        crit_charge = high if high is not None else basic_alerts.get("battery_charge", {}).get("min", 20)
+        warn_charge = warn if warn is not None else crit_charge + 15
         steps = [
-            {"range": [0, warn_low], "color": COLOR_THEME["error"]},
-            {"range": [warn_low, warn_high], "color": COLOR_THEME["warning"]},
-            {"range": [warn_high, 100], "color": COLOR_THEME["success"]},
+            {"range": [0, crit_charge], "color": COLOR_THEME["error"]},
+            {"range": [crit_charge, warn_charge], "color": COLOR_THEME["warning"]},
+            {"range": [warn_charge, 100], "color": COLOR_THEME["success"]},
         ]
         bar_color = (
             COLOR_THEME["error"]
-            if value < warn_low
-            else COLOR_THEME["warning"] if value < warn_high else COLOR_THEME["success"]
+            if value < crit_charge
+            else COLOR_THEME["warning"] if value < warn_charge else COLOR_THEME["success"]
         )
     elif metric_type == "runtime":
-        min_runtime = high if high is not None else basic_alerts.get("runtime", {}).get("min", 5)
-        warn_runtime = warn if warn is not None else min_runtime + ((range_max - min_runtime) / 2)
+        crit_runtime = high if high is not None else basic_alerts.get("runtime", {}).get("min", 5)
+        warn_runtime = warn if warn is not None else crit_runtime + 10
         steps = [
-            {"range": [0, min_runtime], "color": COLOR_THEME["error"]},
-            {"range": [min_runtime, warn_runtime], "color": COLOR_THEME["warning"]},
+            {"range": [0, crit_runtime], "color": COLOR_THEME["error"]},
+            {"range": [crit_runtime, warn_runtime], "color": COLOR_THEME["warning"]},
             {"range": [warn_runtime, range_max], "color": COLOR_THEME["success"]},
         ]
         bar_color = (
             COLOR_THEME["error"]
-            if value < min_runtime
+            if value < crit_runtime
             else COLOR_THEME["warning"] if value < warn_runtime else COLOR_THEME["success"]
         )
     elif metric_type == "voltage":
@@ -122,7 +121,10 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
     voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
 
-    with ui.column().classes("w-full"):
+    ui_elements["dashboard_container"] = ui.column().classes(
+        "w-full transition-opacity duration-150 ease-in-out opacity-100"
+    )
+    with ui_elements["dashboard_container"]:
         with ui.grid().classes("grid-cols-2 md:grid-cols-4 w-full gap-1"):
             ui_elements["load_plot"] = ui.plotly(
                 create_dial_gauge(
@@ -150,11 +152,11 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
             )
             ui_elements["runtime_plot"] = ui.plotly(
                 create_dial_gauge(
-                    float(ups_values.get("actual_runtime_minutes", 0.0)),
+                    float(ups_values.get("battery.runtime", 0.0)) / 60.0,
                     "Runtime (min)",
                     "runtime",
                     0,
-                    180,
+                    max(180, runtime_warn * 2),
                     state.config,
                     warn=runtime_warn,
                     high=runtime_high,

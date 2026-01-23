@@ -1,12 +1,10 @@
-import yaml
 import asyncio
 
 from nicegui import ui, run
 from typing import Dict, Any
 
 from nutalert.utils import setup_logger
-from nutalert.config import load_config
-from nutalert.ui.theme import COLOR_THEME
+from nutalert.config import load_config, load_config_text
 from nutalert.ui.dashboard import create_dial_gauge
 from nutalert.processor import get_ups_data_and_alerts
 
@@ -17,11 +15,11 @@ logger = setup_logger(__name__)
 class AppState:
     def __init__(self):
         self.config = load_config()
-        self.config_text = yaml.dump(self.config, sort_keys=False, indent=2)
+        self.config_text = load_config_text()
         self.nut_values: Dict[str, Dict[str, Any]] = {}
-        self.ups_names: list[str] = []
-        self.ups_status: Dict[str, bool] = {}
-        self.selected_ups: str = ""
+        self.ups_names: list[str] = list(self.config.get("ups_devices", {}).keys())
+        self.ups_status: Dict[str, str] = {name: "waiting" for name in self.ups_names}
+        self.selected_ups: str = self.ups_names[0] if self.ups_names else ""
         self.alert_message: str = "Awaiting first data poll..."
         self.is_alerting: bool = False
         self.logs: str = "Initializing log view..."
@@ -37,15 +35,17 @@ class AppState:
                 if result:
                     nut_values, all_alerts, is_alerting, new_logs = result
                     self.nut_values = nut_values or self.nut_values
-                    self.ups_status = {}
+                    new_status = {}
                     for ups_name in self.config.get("ups_devices", {}):
                         if ups_name in all_alerts:
                             _, ups_is_alerting = all_alerts[ups_name]
-                            self.ups_status[ups_name] = "error" if ups_is_alerting else "ok"
+                            new_status[ups_name] = "error" if ups_is_alerting else "ok"
+                        elif ups_name in nut_values:
+                            new_status[ups_name] = "ok"
                         else:
-                            self.ups_status[ups_name] = "ok"
-                    
-                    self.ups_names = list(self.nut_values.keys())
+                            new_status[ups_name] = self.ups_status.get(ups_name, "waiting")
+                    self.ups_status = new_status
+                    self.ups_names = list(self.config.get("ups_devices", {}).keys())
                     if not self.selected_ups or self.selected_ups not in self.ups_names:
                         self.selected_ups = self.ups_names[0] if self.ups_names else ""
                     self.alert_message = str(all_alerts)
@@ -112,12 +112,13 @@ class AppState:
             if "runtime_plot" in ui_elements:
                 runtime_seconds = float(ups_values.get("battery.runtime", 0.0))
                 runtime_minutes = runtime_seconds / 60 if runtime_seconds else 0.0
+                runtime_range_max = max(180, runtime_warn * 2)
                 ui_elements["runtime_plot"].figure = create_dial_gauge(
                     runtime_minutes,
                     "Runtime (min)",
                     "runtime",
                     0,
-                    runtime_high,
+                    runtime_range_max,
                     self.config,
                     warn=runtime_warn,
                     high=runtime_high,
@@ -155,17 +156,8 @@ class AppState:
                     log_element.push(line)
             
             if "header_status_card" in ui_elements and "header_status_icon" in ui_elements and "header_status_label" in ui_elements:
-                all_ok = True
-                for ups_name in self.config.get("ups_devices", {}):
-                    status = self.ups_status.get(ups_name, "ok")
-                    if status != "ok":
-                        all_ok = False
-                        break
-                
-                status_icon = "check_circle" if all_ok else "warning"
-                status_color = COLOR_THEME["success"] if all_ok else COLOR_THEME["warning"]
-                status_label = "Devices healthy" if all_ok else "Check status"
-                status_bg = COLOR_THEME["success_bg"] if all_ok else COLOR_THEME["error_bg"]
+                from nutalert.ui.header import get_overall_status
+                _, status_icon, status_color, status_label, status_bg = get_overall_status(self)
 
                 ui_elements["header_status_card"].style(f"background:{status_bg};")
                 ui_elements["header_status_icon"].props(f"name={status_icon}").style(f"color: {status_color}")
