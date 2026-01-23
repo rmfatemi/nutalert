@@ -20,12 +20,11 @@ class NutAlertNotifier:
             error_msg = "no apprise urls configured"
             logger.error(error_msg)
             return False, error_msg
-        if all(isinstance(item, str) for item in urls_config):
-            for url in urls_config:
-                if url:
-                    ap_obj.add(url)
-        elif all(isinstance(item, dict) for item in urls_config):
-            for item in urls_config:
+        for item in urls_config:
+            if isinstance(item, str):
+                if item:
+                    ap_obj.add(item)
+            elif isinstance(item, dict):
                 if item.get("enabled", True):
                     url = item.get("url")
                     if url:
