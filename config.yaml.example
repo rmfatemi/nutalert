@@ -1,0 +1,76 @@
+###############################################################################
+# nut server configuration
+###############################################################################
+
+nut_server:
+  host: "10.0.10.101"            # ip address of the nut server
+  port: 3493                     # port used for connection (default: 3493)
+  check_interval: 15             # how often to check the ups data (in seconds)
+
+###############################################################################
+# notifications configuration
+###############################################################################
+
+notifications:
+  enabled: true                  # set to false to disable all notifications
+  cooldown: 60                   # time to wait (s) between sending new alerts
+  urls:
+    - url: "tgram://123456789:ABCDEF1234567890/ChatID"
+      enabled: false
+    - url: "discord://your-discord-webhook-id/your-discord-webhook-token"
+      enabled: false
+    - url: "slack://your-slack-token-a/your-slack-token-b/your-slack-token-c"
+      enabled: false
+
+###############################################################################
+# ups devices configuration
+###############################################################################
+
+ups_devices:
+  ups:
+    alert_mode: basic            # choose: "basic" or "formula"
+
+    gauge_settings:
+      load:
+        warn_threshold: 80       # load % to show warning color on gauge
+        high_threshold: 100      # load % to show high/critical color on gauge
+      charge_remaining:
+        warn_threshold: 35       # charge % to show warning color on gauge
+        high_threshold: 15       # charge % to show high/critical color on gauge
+      runtime:
+        warn_threshold: 15       # runtime (min) to show warning color on gauge
+        high_threshold: 5        # runtime (min) to show high/critical color on gauge
+      voltage:
+        nominal: 120             # nominal voltage (120 or 220/230/240)
+        warn_deviation: 10       # voltage deviation % to show warning color
+        high_deviation: 15       # voltage deviation % to show high/critical color
+
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 90                  # minimum acceptable battery charge (%)
+        message: "UPS battery charge below minimum threshold"
+      runtime:
+        enabled: true
+        min: 15                  # minimum acceptable runtime in minutes
+        message: "UPS runtime below minimum threshold"
+      load:
+        enabled: true
+        max: 50                  # maximum acceptable load percentage
+        message: "UPS load exceeds maximum threshold"
+      input_voltage:
+        enabled: false
+        min: 110.0               # minimum acceptable input voltage (volts)
+        max: 130.0               # maximum acceptable input voltage (volts)
+        message: "UPS input voltage outside acceptable range"
+      ups_status:
+        enabled: true
+        acceptable:              # acceptable ups operational statuses
+          - ol
+          - online
+        alert_when_status_changed: false
+        message: "UPS status not in acceptable list"
+
+    formula_alert:
+      expression: "(battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20"
+      message: "UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins"
