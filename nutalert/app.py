@@ -1,4 +1,3 @@
-import yaml
 import asyncio
 
 from nicegui import ui, app
