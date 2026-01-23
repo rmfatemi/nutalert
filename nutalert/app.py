@@ -1,6 +1,7 @@
 import asyncio
 
 from nicegui import ui, app
+from fastapi.responses import JSONResponse
 from typing import Dict, Any
 
 from nutalert.ui.state import AppState
@@ -71,6 +72,25 @@ async def dashboard_page():
 
 app.on_startup(state.poll_ups_data)
 app.add_static_files("/assets", "assets")
+
+
+@app.get("/health")
+async def health_check():
+    has_devices = len(state.ups_names) > 0
+    all_ok = all(status == "ok" for status in state.ups_status.values()) if state.ups_status else False
+    any_error = any(status == "error" for status in state.ups_status.values())
+    
+    status = "healthy" if has_devices and all_ok else "degraded" if any_error else "starting"
+    
+    return JSONResponse(
+        content={
+            "status": status,
+            "devices": len(state.ups_names),
+            "devices_ok": sum(1 for s in state.ups_status.values() if s == "ok"),
+            "devices_error": sum(1 for s in state.ups_status.values() if s == "error"),
+        },
+        status_code=200 if status in ["healthy", "degraded"] else 503
+    )
 
 
 def main():
