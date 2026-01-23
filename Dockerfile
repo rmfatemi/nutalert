@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY nutalert/ nutalert/
 COPY assets/ assets/
-COPY README.md .
+COPY README.md pyproject.toml ./
 
 FROM python:3.11-alpine
 
