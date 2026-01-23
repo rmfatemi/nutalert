@@ -7,7 +7,7 @@ from typing import Dict, Any
 from nutalert.fetcher import fetch_nut_ups_names
 
 
-CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml"))
+CONFIG_PATH = os.environ.get("CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml")))
 
 
 DEFAULT_UPS_CONFIG: Dict[str, Any] = {
