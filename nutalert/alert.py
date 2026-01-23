@@ -48,7 +48,7 @@ def check_runtime(basic_alerts, env):
 
     if env["actual_runtime_minutes"] < min_runtime:
         message = basic_alerts["runtime"]["message"]
-        return f"{message} ({env['actual_runtime_minutes']:.1f}min < {min_runtime}min)"
+        return f"{message} ({env['actual_runtime_minutes']:.1f}min, threshold: {min_runtime}min)"
     return None
 
 
@@ -61,7 +61,7 @@ def check_load(basic_alerts, env):
 
     if env["ups_load"] > max_load:
         message = basic_alerts["load"]["message"]
-        return f"{message} ({env['ups_load']:.1f}% > {max_load}%)"
+        return f"{message} ({env['ups_load']:.1f}%, threshold: {max_load}%)"
     return None
 
 

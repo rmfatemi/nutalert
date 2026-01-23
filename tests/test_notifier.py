@@ -120,6 +120,7 @@ class TestNutAlertNotifier:
     def test_send_all_notifications_enabled(self, mock_apprise_class):
         mock_apprise = MagicMock()
         mock_apprise.servers = [MagicMock()]
+        mock_apprise.notify.return_value = True
         mock_apprise_class.return_value = mock_apprise
         
         config = {
@@ -133,3 +134,17 @@ class TestNutAlertNotifier:
         notifier.send_all("Title", "Message")
         
         mock_apprise.notify.assert_called_once()
+
+    @patch("nutalert.notifier.apprise.Apprise")
+    def test_notify_apprise_delivery_failure(self, mock_apprise_class):
+        mock_apprise = MagicMock()
+        mock_apprise.servers = [MagicMock()]
+        mock_apprise.notify.return_value = False
+        mock_apprise_class.return_value = mock_apprise
+        
+        config = {"notifications": {"urls": ["mailto://user@example.com"]}}
+        notifier = NutAlertNotifier(config)
+        
+        result = notifier.notify_apprise("Test Title", "Test Message")
+        
+        assert result is False
