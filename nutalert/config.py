@@ -130,6 +130,11 @@ def load_config() -> Dict[str, Any]:
                 config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
                 new_devices.append(ups_name)
 
+        config["ups_devices"] = {
+            name: cfg for name, cfg in config["ups_devices"].items()
+            if name in ups_names
+        }
+
     if new_devices or not config_file_exists:
         _save_with_new_devices(loaded, new_devices, config_file_exists)
 

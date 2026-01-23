@@ -124,6 +124,44 @@ ups_devices:
         finally:
             os.unlink(temp_path)
 
+    @patch("nutalert.config.fetch_nut_ups_names")
+    def test_load_config_filters_nonexistent_ups(self, mock_fetch):
+        """Test that UPS devices not found on the server are filtered out."""
+        mock_fetch.return_value = ["new_ups"]
+        
+        test_config = """
+nut_server:
+  host: localhost
+  port: 3493
+  check_interval: 15
+notifications:
+  enabled: true
+  cooldown: 60
+  urls: []
+ups_devices:
+  old_ups_1:
+    alert_mode: basic
+  old_ups_2:
+    alert_mode: formula
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(test_config)
+            temp_path = f.name
+        
+        try:
+            with patch("nutalert.config.CONFIG_PATH", temp_path):
+                with patch("nutalert.config.save_config"):
+                    config = load_config()
+            
+            # Old UPS devices should be filtered out
+            assert "old_ups_1" not in config["ups_devices"]
+            assert "old_ups_2" not in config["ups_devices"]
+            # New UPS should be auto-discovered
+            assert "new_ups" in config["ups_devices"]
+            assert len(config["ups_devices"]) == 1
+        finally:
+            os.unlink(temp_path)
+
 
 class TestSaveConfig:
     def test_save_config_success(self):
