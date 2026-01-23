@@ -34,11 +34,15 @@ class NutAlertNotifier:
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
         try:
             if file_path:
-                ap_obj.notify(title=title, body=short_body, attach=file_path)
+                result = ap_obj.notify(title=title, body=short_body, attach=file_path)
             else:
-                ap_obj.notify(title=title, body=short_body)
-            logger.info("apprise notification sent successfully")
-            return True
+                result = ap_obj.notify(title=title, body=short_body)
+            if result:
+                logger.info("apprise notification sent successfully")
+                return True
+            else:
+                logger.error("apprise notification failed to deliver")
+                return False
         except Exception as exc:
             logger.error("error sending apprise notification: %s", exc)
             return False
