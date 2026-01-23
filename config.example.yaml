@@ -1,0 +1,130 @@
+# NutAlert Configuration Reference
+# =================================
+# This file documents all available configuration options.
+# Copy sections you need to your config.yaml file.
+#
+# UPS devices are AUTO-DISCOVERED from your NUT server on first run.
+# You don't need to manually add them - just configure nut_server below
+# and start the application.
+
+nut_server:
+  host: 192.168.1.100            # NUT server hostname or IP
+  port: 3493
+  check_interval: 15             # Polling interval in seconds
+
+notifications:
+  enabled: true
+  cooldown: 60                   # Minimum seconds between repeated alerts
+  urls:
+    # Apprise notification URLs - see https://github.com/caronc/apprise
+    # Supports 80+ services including:
+    - tgram://bot_token/chat_id
+    - discord://webhook_id/webhook_token
+    - slack://token_a/token_b/token_c
+    - mailto://user:pass@smtp.example.com?to=alerts@example.com
+    - gotify://hostname/token
+    - pushover://user_key@app_token
+
+# UPS Devices Configuration
+# -------------------------
+# After auto-discovery, each UPS appears here with default settings.
+# Customize per-device thresholds as needed.
+#
+# To manually list available UPS names: upsc -l <nut_server_host>
+
+ups_devices:
+  # Example: Primary server UPS
+  server-ups:
+    alert_mode: basic            # "basic" = threshold checks, "formula" = custom logic
+
+    # Dashboard gauge visual thresholds (colors only, not alerts)
+    gauge_settings:
+      load:
+        warn_threshold: 80       # Yellow above this %
+        high_threshold: 100      # Red above this %
+      charge_remaining:
+        warn_threshold: 35       # Yellow below this %
+        high_threshold: 15       # Red below this %
+      runtime:
+        warn_threshold: 15       # Yellow below this (minutes)
+        high_threshold: 5        # Red below this (minutes)
+      voltage:
+        nominal: 120             # Expected voltage (use 230 for EU)
+        warn_deviation: 10       # % deviation for yellow
+        high_deviation: 15       # % deviation for red
+
+    # Threshold-based alerts (used when alert_mode: basic)
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 90
+        message: UPS battery charge below minimum threshold
+      runtime:
+        enabled: true
+        min: 15                  # Minutes
+        message: UPS runtime below minimum threshold
+      load:
+        enabled: true
+        max: 50
+        message: UPS load exceeds maximum threshold
+      input_voltage:
+        enabled: false
+        min: 110.0
+        max: 130.0
+        message: UPS input voltage outside acceptable range
+      ups_status:
+        enabled: true
+        acceptable: [ol, online] # "ol" = on line (normal)
+        alert_when_status_changed: false
+        message: UPS status not in acceptable list
+
+    # Custom formula alert (used when alert_mode: formula)
+    # Available variables: ups_load, battery_charge, actual_runtime_minutes,
+    #                      battery_voltage, input_voltage, ups_status
+    formula_alert:
+      expression: (battery_charge < 90 or actual_runtime_minutes < 20) and ups_load > 20
+      message: 'UPS load: {ups_load}%, charge: {battery_charge}%, runtime: {actual_runtime_minutes:.1f} mins'
+
+  # Example: Network equipment UPS with relaxed thresholds
+  network-ups:
+    alert_mode: basic
+    gauge_settings:
+      load:
+        warn_threshold: 70
+        high_threshold: 90
+      charge_remaining:
+        warn_threshold: 30
+        high_threshold: 10
+      runtime:
+        warn_threshold: 10
+        high_threshold: 3
+      voltage:
+        nominal: 120
+        warn_deviation: 10
+        high_deviation: 15
+    basic_alerts:
+      battery_charge:
+        enabled: true
+        min: 50
+        message: Network UPS battery low
+      runtime:
+        enabled: true
+        min: 10
+        message: Network UPS runtime critical
+      load:
+        enabled: false
+        max: 80
+        message: Network UPS overloaded
+      input_voltage:
+        enabled: false
+        min: 110.0
+        max: 130.0
+        message: Network UPS voltage issue
+      ups_status:
+        enabled: true
+        acceptable: [ol, online, ob]  # Include "ob" (on battery) as acceptable
+        alert_when_status_changed: true
+        message: Network UPS status changed
+    formula_alert:
+      expression: battery_charge < 30 and actual_runtime_minutes < 5
+      message: 'CRITICAL: Network UPS at {battery_charge}% with {actual_runtime_minutes:.0f} min remaining'
