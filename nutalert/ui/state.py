@@ -169,11 +169,14 @@ class AppState:
             
             if "header_status_card" in ui_elements and "header_status_icon" in ui_elements and "header_status_label" in ui_elements:
                 from nutalert.ui.header import get_overall_status
-                _, status_icon, status_color, status_label, status_bg = get_overall_status(self)
+                _, status_icon, status_color, status_label, status_bg, status_tooltip = get_overall_status(self)
 
                 ui_elements["header_status_card"].style(f"background:{status_bg};")
                 ui_elements["header_status_icon"].props(f"name={status_icon}").style(f"color: {status_color}")
                 ui_elements["header_status_label"].set_text(status_label)
+                
+                if "header_status_tooltip" in ui_elements:
+                    ui_elements["header_status_tooltip"].set_text(status_tooltip)
             
             if "ups_tabs" in ui_elements:
                 ui_elements["ups_tabs"].set_value(self.selected_ups)
