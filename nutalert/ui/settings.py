@@ -106,13 +106,8 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                         
                         if "successfully" in save_status:
                             if nut_server_changed:
-                                with ui.dialog() as dialog, ui.card().classes("p-4"):
-                                    ui.label("NUT Server Settings Changed").classes("text-lg font-bold mb-2")
-                                    ui.label("The NUT server host or port has been changed. A page refresh is recommended to reconnect.").classes("text-sm mb-4")
-                                    with ui.row().classes("gap-2"):
-                                        ui.button("Refresh Now", on_click=lambda: ui.navigate.reload(), color="primary")
-                                        ui.button("Later", on_click=dialog.close).props("flat")
-                                dialog.open()
+                                logger.info("nut server settings changed, reloading page...")
+                                ui.navigate.reload()
                             else:
                                 ui.notify(save_status, color="positive", timeout=NOTIFY_SUCCESS_TIMEOUT)
                         else:
