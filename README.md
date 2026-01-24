@@ -41,8 +41,8 @@ Access the web interface at `http://{server_ip}:8087` to:
 - Adjust rules and UPS limits
 - View system logs
 
-<img width="2529" height="1264" alt="Screenshot From 2026-01-23 03-15-11" src="https://github.com/user-attachments/assets/46f0c397-e72d-4bf3-ba0a-da0cbcfadded" />
-<img width="2529" height="1264" alt="Screenshot From 2026-01-23 03-54-55" src="https://github.com/user-attachments/assets/93411cce-ee9d-4eaf-9c2a-3da5ded58acb" />
+<img width="2546" height="1282" alt="Screenshot From 2026-01-24 03-44-34" src="https://github.com/user-attachments/assets/a72013f9-2e56-45f5-a8dd-675e9c047e0f" />
+<img width="2546" height="1287" alt="Screenshot From 2026-01-24 03-46-21" src="https://github.com/user-attachments/assets/f6bc87d9-af03-429b-bb96-d9ebbee2ba0d" />
 
 ## Setup Guide
 
