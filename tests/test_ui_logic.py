@@ -39,7 +39,7 @@ def get_overall_status_logic(ups_names, ups_status):
     elif has_waiting:
         return "waiting", "hourglass_empty", COLOR_THEME_MOCK["warning"], "Checking...", COLOR_THEME_MOCK["error_bg"]
     else:
-        return "ok", "check_circle", COLOR_THEME_MOCK["success"], "Devices healthy", COLOR_THEME_MOCK["success_bg"]
+        return "ok", "check_circle", COLOR_THEME_MOCK["success"], "Healthy", COLOR_THEME_MOCK["success_bg"]
 
 
 def get_load_gauge_color(value, warn, high):
@@ -92,7 +92,7 @@ class TestGetOverallStatus:
         
         assert status == "ok"
         assert icon == "check_circle"
-        assert label == "Devices healthy"
+        assert label == "Healthy"
 
     def test_one_device_error(self):
         status, icon, color, label, bg = get_overall_status_logic(
@@ -127,7 +127,7 @@ class TestGetOverallStatus:
         status, icon, color, label, bg = get_overall_status_logic([], {})
         
         assert status == "ok"
-        assert label == "Devices healthy"
+        assert label == "Healthy"
 
     def test_missing_status_defaults_to_waiting(self):
         status, icon, color, label, bg = get_overall_status_logic(
