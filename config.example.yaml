@@ -6,6 +6,11 @@
 # UPS devices are AUTO-DISCOVERED from your NUT server on first run.
 # You don't need to manually add them - just configure nut_server below
 # and start the application.
+#
+# NOTE: Existing users upgrading from v1 format will have their config
+# automatically migrated. A backup is created before migration.
+
+config_version: 2                # Do not modify - used for config migration
 
 nut_server:
   host: 192.168.1.100            # NUT server hostname or IP
@@ -19,11 +24,11 @@ notifications:
     # Apprise notification URLs - see https://github.com/caronc/apprise
     # Supports 80+ services including Telegram, Discord, Slack, etc.
     #
-    # Simple format (always enabled):
-    # - tgram://bot_token/chat_id
-    # - discord://webhook_id/webhook_token
+    # Each URL entry has two fields:
+    #   url: The Apprise URL for the notification service
+    #   enabled: true/false to enable/disable this specific target
     #
-    # Extended format (per-destination enable/disable):
+    # Examples:
     - url: tgram://bot_token/chat_id
       enabled: true
     - url: discord://webhook_id/webhook_token
