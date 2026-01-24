@@ -98,10 +98,7 @@ def get_overall_status(state):
             tooltip
         )
     else:
-        if total_count == 1:
-            label = "1 device healthy"
-        else:
-            label = f"{total_count} devices healthy"
+        label = "Healthy"
         
         tooltip = f"Connected: {total_count} device(s)\nAll devices operating normally."
         return (
