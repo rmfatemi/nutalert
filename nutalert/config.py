@@ -112,7 +112,6 @@ def _migrate_v1_to_v2(old_config: Dict[str, Any]) -> Dict[str, Any]:
     new_config["config_version"] = CURRENT_CONFIG_VERSION
     
     if "nut_server" in old_config:
-    if "nut_server" in old_config:
         new_config["nut_server"] = old_config["nut_server"].copy()
         if "check_interval" not in new_config["nut_server"] and "check_interval" in old_config:
             new_config["nut_server"]["check_interval"] = old_config["check_interval"]
