@@ -10,11 +10,9 @@ nut_server:
 notifications:
   enabled: true  # Enable/disable all notifications
   cooldown: 60 # Minimum seconds between repeated alerts
-  urls:
-  - url: tgram://YOUR_BOT_TOKEN/112633525
-    enabled: true
-  - url: gotify://10.0.10.220/AHWK8KSDA-pwpi4
-    enabled: true
+  urls: |  # Apprise URLs, one per line - https://github.com/caronc/apprise
+    tgram://YOUR_BOT_TOKEN/112633525
+    gotify://10.0.10.220/AHWK8KSDA-pwpi4
 ups_devices:
   ups:
     alert_mode: formula  # "basic" for thresholds, "formula" for custom logic

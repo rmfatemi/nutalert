@@ -6,13 +6,33 @@ from nutalert.notifier import NutAlertNotifier
 
 class TestNutAlertNotifier:
     def test_init(self):
-        config = {"notifications": {"urls": []}}
+        config = {"notifications": {"urls": ""}}
         notifier = NutAlertNotifier(config)
         
         assert notifier.config == config
 
     @patch("nutalert.notifier.apprise.Apprise")
-    def test_notify_apprise_with_string_urls(self, mock_apprise_class):
+    def test_notify_apprise_with_multiline_string_urls(self, mock_apprise_class):
+        mock_apprise = MagicMock()
+        mock_apprise.servers = [MagicMock()]
+        mock_apprise_class.return_value = mock_apprise
+        
+        config = {
+            "notifications": {
+                "urls": "mailto://user@example.com\nslack://token\n"
+            }
+        }
+        notifier = NutAlertNotifier(config)
+        
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
+        
+        assert mock_apprise.add.call_count == 2
+        mock_apprise.notify.assert_called_once()
+        assert success is True
+        assert error_msg == ""
+
+    @patch("nutalert.notifier.apprise.Apprise")
+    def test_notify_apprise_with_string_urls_legacy(self, mock_apprise_class):
         mock_apprise = MagicMock()
         mock_apprise.servers = [MagicMock()]
         mock_apprise_class.return_value = mock_apprise
@@ -32,7 +52,7 @@ class TestNutAlertNotifier:
         assert error_msg == ""
 
     @patch("nutalert.notifier.apprise.Apprise")
-    def test_notify_apprise_with_dict_urls(self, mock_apprise_class):
+    def test_notify_apprise_with_dict_urls_legacy(self, mock_apprise_class):
         mock_apprise = MagicMock()
         mock_apprise.servers = [MagicMock()]
         mock_apprise_class.return_value = mock_apprise
@@ -53,8 +73,25 @@ class TestNutAlertNotifier:
         mock_apprise.notify.assert_called_once()
 
     @patch("nutalert.notifier.apprise.Apprise")
+    def test_notify_apprise_skips_comments_in_urls(self, mock_apprise_class):
+        mock_apprise = MagicMock()
+        mock_apprise.servers = [MagicMock()]
+        mock_apprise_class.return_value = mock_apprise
+        
+        config = {
+            "notifications": {
+                "urls": "mailto://user@example.com\n# this is a comment\nslack://token\n"
+            }
+        }
+        notifier = NutAlertNotifier(config)
+        
+        success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
+        
+        assert mock_apprise.add.call_count == 2
+
+    @patch("nutalert.notifier.apprise.Apprise")
     def test_notify_apprise_no_urls(self, mock_apprise_class):
-        config = {"notifications": {"urls": []}}
+        config = {"notifications": {"urls": ""}}
         notifier = NutAlertNotifier(config)
         
         success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
@@ -70,7 +107,7 @@ class TestNutAlertNotifier:
         
         config = {
             "notifications": {
-                "urls": [{"url": "invalid://url", "enabled": True}]
+                "urls": "invalid://url\n"
             }
         }
         notifier = NutAlertNotifier(config)
@@ -87,7 +124,7 @@ class TestNutAlertNotifier:
         mock_apprise.notify.side_effect = Exception("Network error")
         mock_apprise_class.return_value = mock_apprise
         
-        config = {"notifications": {"urls": ["mailto://user@example.com"]}}
+        config = {"notifications": {"urls": "mailto://user@example.com\n"}}
         notifier = NutAlertNotifier(config)
         
         success, error_msg = notifier.notify_apprise("Test Title", "Test Message")
@@ -101,7 +138,7 @@ class TestNutAlertNotifier:
         mock_apprise.servers = [MagicMock()]
         mock_apprise_class.return_value = mock_apprise
         
-        config = {"notifications": {"urls": ["mailto://user@example.com"]}}
+        config = {"notifications": {"urls": "mailto://user@example.com\n"}}
         notifier = NutAlertNotifier(config)
         
         long_message = "x" * 2500
@@ -113,7 +150,7 @@ class TestNutAlertNotifier:
         assert "shortened" in body
 
     def test_send_all_notifications_disabled(self):
-        config = {"notifications": {"enabled": False, "urls": ["test://url"]}}
+        config = {"notifications": {"enabled": False, "urls": "test://url\n"}}
         notifier = NutAlertNotifier(config)
         
         with patch.object(notifier, "notify_apprise") as mock_notify:
@@ -130,7 +167,7 @@ class TestNutAlertNotifier:
         config = {
             "notifications": {
                 "enabled": True,
-                "urls": ["mailto://user@example.com"],
+                "urls": "mailto://user@example.com\n",
             }
         }
         notifier = NutAlertNotifier(config)
@@ -147,7 +184,7 @@ class TestNutAlertNotifier:
         mock_apprise.notify.return_value = False
         mock_apprise_class.return_value = mock_apprise
         
-        config = {"notifications": {"urls": ["mailto://user@example.com"]}}
+        config = {"notifications": {"urls": "mailto://user@example.com\n"}}
         notifier = NutAlertNotifier(config)
         
         success, error_msg = notifier.notify_apprise("Test Title", "Test Message")

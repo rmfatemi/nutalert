@@ -15,20 +15,26 @@ class NutAlertNotifier:
     def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> Tuple[bool, str]:
         ap_obj = apprise.Apprise()
         notifications_cfg = self.config.get("notifications", {})
-        urls_config = notifications_cfg.get("urls", [])
+        urls_config = notifications_cfg.get("urls", "")
         if not urls_config:
             error_msg = "no apprise urls configured"
             logger.error(error_msg)
             return False, error_msg
-        for item in urls_config:
-            if isinstance(item, str):
-                if item:
-                    ap_obj.add(item)
-            elif isinstance(item, dict):
-                if item.get("enabled", True):
-                    url = item.get("url")
-                    if url:
-                        ap_obj.add(url)
+        if isinstance(urls_config, str):
+            for line in urls_config.strip().splitlines():
+                url = line.strip()
+                if url and not url.startswith("#"):
+                    ap_obj.add(url)
+        elif isinstance(urls_config, list):
+            for item in urls_config:
+                if isinstance(item, str):
+                    if item:
+                        ap_obj.add(item)
+                elif isinstance(item, dict):
+                    if item.get("enabled", True):
+                        url = item.get("url")
+                        if url:
+                            ap_obj.add(url)
         if not ap_obj.servers:
             error_msg = "no enabled apprise urls found"
             logger.error(error_msg)

@@ -20,21 +20,10 @@ nut_server:
 notifications:
   enabled: true
   cooldown: 60                   # Minimum seconds between repeated alerts
-  urls:
-    # Apprise notification URLs - see https://github.com/caronc/apprise
-    # Supports 80+ services including Telegram, Discord, Slack, etc.
-    #
-    # Each URL entry has two fields:
-    #   url: The Apprise URL for the notification service
-    #   enabled: true/false to enable/disable this specific target
-    #
-    # Examples:
-    - url: tgram://bot_token/chat_id
-      enabled: true
-    - url: discord://webhook_id/webhook_token
-      enabled: false
-    - url: gotify://hostname/token
-      enabled: true
+  urls: |                        # Apprise URLs, one per line - https://github.com/caronc/apprise
+    tgram://bot_token/chat_id
+    discord://webhook_id/webhook_token
+    gotify://hostname/token
 
 # UPS Devices Configuration
 # -------------------------
