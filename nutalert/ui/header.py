@@ -4,10 +4,12 @@ from typing import Dict, Any
 from nutalert.ui.theme import COLOR_THEME
 
 
-def _logs_have_errors(logs: str) -> bool:
-    if not logs:
+def _logs_have_recent_errors(state) -> bool:
+    if state._consecutive_clean_polls >= 2:
         return False
-    for line in logs.splitlines():
+    if not state.logs:
+        return False
+    for line in state.logs.splitlines():
         if "[ERROR]" in line.upper():
             return True
     return False
@@ -33,7 +35,7 @@ def _count_device_statuses(state):
 def get_overall_status(state):
     has_error = False
     has_waiting = False
-    has_log_errors = _logs_have_errors(state.logs)
+    has_log_errors = _logs_have_recent_errors(state)
     
     if not state.ups_names:
         if has_log_errors:

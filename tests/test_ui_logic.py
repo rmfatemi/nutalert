@@ -195,3 +195,47 @@ class TestGaugeThresholds:
         color = get_voltage_gauge_color(value=130, nominal=120, warn_deviation=10, high_deviation=15)
         assert color == COLOR_THEME_MOCK["success"]
 
+
+class MockStateWithLogs:
+    def __init__(self, ups_names=None, ups_status=None, logs="", consecutive_clean_polls=0):
+        self.ups_names = ups_names or []
+        self.ups_status = ups_status or {}
+        self.logs = logs
+        self._consecutive_clean_polls = consecutive_clean_polls
+
+
+def logs_have_recent_errors_logic(state):
+    if state._consecutive_clean_polls >= 2:
+        return False
+    if not state.logs:
+        return False
+    for line in state.logs.splitlines():
+        if "[ERROR]" in line.upper():
+            return True
+    return False
+
+
+class TestErrorRecovery:
+    def test_no_errors_no_logs(self):
+        state = MockStateWithLogs(logs="", consecutive_clean_polls=0)
+        assert logs_have_recent_errors_logic(state) is False
+
+    def test_errors_in_logs_zero_clean_polls(self):
+        state = MockStateWithLogs(logs="2024-01-01 [ERROR] something failed", consecutive_clean_polls=0)
+        assert logs_have_recent_errors_logic(state) is True
+
+    def test_errors_in_logs_one_clean_poll(self):
+        state = MockStateWithLogs(logs="2024-01-01 [ERROR] something failed", consecutive_clean_polls=1)
+        assert logs_have_recent_errors_logic(state) is True
+
+    def test_errors_in_logs_two_clean_polls_recovers(self):
+        state = MockStateWithLogs(logs="2024-01-01 [ERROR] something failed", consecutive_clean_polls=2)
+        assert logs_have_recent_errors_logic(state) is False
+
+    def test_errors_in_logs_many_clean_polls_recovers(self):
+        state = MockStateWithLogs(logs="2024-01-01 [ERROR] something failed", consecutive_clean_polls=10)
+        assert logs_have_recent_errors_logic(state) is False
+
+    def test_no_errors_but_info_logs(self):
+        state = MockStateWithLogs(logs="2024-01-01 [INFO] all good", consecutive_clean_polls=0)
+        assert logs_have_recent_errors_logic(state) is False

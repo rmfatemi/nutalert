@@ -27,6 +27,8 @@ class AppState:
         self._initial_load_done: bool = False
         self._selector_refresh_callback = None
         self._rebuild_tabs_callback = None
+        self._consecutive_clean_polls: int = 0
+        self._last_log_line_count: int = 0
 
     async def poll_ups_data(self):
         while True:
@@ -61,6 +63,17 @@ class AppState:
                     self.alert_message = str(all_alerts)
                     self.is_alerting = is_alerting
                     self.logs = new_logs or self.logs
+                    
+                    current_log_lines = len(self.logs.splitlines()) if self.logs else 0
+                    new_log_content = self.logs.splitlines()[self._last_log_line_count:] if self.logs else []
+                    has_new_errors = any("[ERROR]" in line.upper() for line in new_log_content)
+                    
+                    if has_new_errors or is_alerting:
+                        self._consecutive_clean_polls = 0
+                    else:
+                        self._consecutive_clean_polls += 1
+                    
+                    self._last_log_line_count = current_log_lines
                     
                     if not self._initial_load_done and self.ups_names:
                         self._initial_load_done = True
