@@ -15,6 +15,10 @@ logger = setup_logger("settings")
 _yaml = YAML()
 _yaml.preserve_quotes = True
 
+NOTIFY_SUCCESS_TIMEOUT = 5000
+NOTIFY_ERROR_TIMEOUT = 20000
+NOTIFY_CRITICAL_TIMEOUT = 30000
+
 
 class UrlConfig(BaseModel):
     url: str
@@ -35,13 +39,19 @@ class NotificationsConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
+    config_version: Optional[int] = None
     ups_devices: Dict[str, Any]
     nut_server: NutServerConfig
     notifications: Optional[NotificationsConfig] = None
 
 
 def build_configuration_tab(ui_elements: Dict[str, Any], state):
+    original_nut_server = state.config.get("nut_server", {}).copy()
+    
     with ui.column().classes("w-full gap-y-4"):
+        error_banner_container = ui.row().classes("w-full")
+        ui_elements["error_banner_container"] = error_banner_container
+        
         with ui.row().classes("w-full gap-4").style("align-items: flex-start;"):
             with ui.column().classes("flex-1").style("min-width: 0;"):
                 ui.label("YAML Editor").classes("text-md font-medium mb-2")
@@ -59,12 +69,36 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
 
         with ui.row().classes("w-full justify-between items-center gap-x-4 mt-4"):
             with ui.row().classes("items-center gap-x-4"):
-                def save_and_apply():
+                def show_persistent_error(message: str):
+                    error_banner_container.clear()
+                    with error_banner_container:
+                        with ui.card().classes("w-full p-3 bg-red-900 border border-red-700"):
+                            with ui.row().classes("w-full items-center justify-between"):
+                                with ui.row().classes("items-center gap-2"):
+                                    ui.icon("error", color="red-400").classes("text-xl")
+                                    ui.label(message).classes("text-red-200 text-sm")
+                                ui.button(icon="close", on_click=lambda: error_banner_container.clear()).props("flat dense round").classes("text-red-400")
+                
+                def clear_error_banner():
+                    error_banner_container.clear()
+                
+                def check_nut_server_changed(new_config_data: dict) -> bool:
+                    new_nut = new_config_data.get("nut_server", {})
+                    return (
+                        new_nut.get("host") != original_nut_server.get("host") or
+                        new_nut.get("port") != original_nut_server.get("port")
+                    )
+                
+                async def save_and_apply():
+                    clear_error_banner()
                     try:
                         logger.info("validating configuration...")
                         new_config_data = _yaml.load(StringIO(state.config_text))
                         AppConfig.model_validate(new_config_data)
                         logger.info("configuration validated successfully")
+                        
+                        nut_server_changed = check_nut_server_changed(new_config_data)
+                        
                         save_status = save_config_text(state.config_text)
                         reloaded_config = load_config()
                         state.config = reloaded_config
@@ -74,7 +108,21 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                         if not state.selected_ups or state.selected_ups not in state.ups_names:
                             state.selected_ups = state.ups_names[0] if state.ups_names else ""
                         logger.info("configuration saved and applied")
-                        ui.notify(save_status, color="positive" if "successfully" in save_status else "negative", timeout=5)
+                        
+                        if "successfully" in save_status:
+                            if nut_server_changed:
+                                with ui.dialog() as dialog, ui.card().classes("p-4"):
+                                    ui.label("NUT Server Settings Changed").classes("text-lg font-bold mb-2")
+                                    ui.label("The NUT server host or port has been changed. A page refresh is recommended to reconnect.").classes("text-sm mb-4")
+                                    with ui.row().classes("gap-2"):
+                                        ui.button("Refresh Now", on_click=lambda: ui.navigate.reload(), color="primary")
+                                        ui.button("Later", on_click=dialog.close).props("flat")
+                                dialog.open()
+                            else:
+                                ui.notify(save_status, color="positive", timeout=NOTIFY_SUCCESS_TIMEOUT)
+                        else:
+                            ui.notify(save_status, color="negative", timeout=NOTIFY_ERROR_TIMEOUT)
+                            
                     except ValidationError as e:
                         errors = e.errors()
                         if errors:
@@ -89,13 +137,18 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                         else:
                             full_error = str(e)
                         logger.error(f"configuration validation failed: {full_error}")
-                        ui.notify(f"validation error: {full_error}", color="negative", multi_line=True, timeout=10)
+                        ui.notify(f"validation error: {full_error}", color="negative", multi_line=True, timeout=NOTIFY_CRITICAL_TIMEOUT)
+                        show_persistent_error(f"Validation Error: {full_error}")
                     except YAMLError as e:
-                        logger.error(f"yaml syntax error: {e}")
-                        ui.notify(f"yaml syntax error: {e}", color="negative", multi_line=True, timeout=10)
+                        error_msg = str(e)
+                        logger.error(f"yaml syntax error: {error_msg}")
+                        ui.notify(f"yaml syntax error: {error_msg}", color="negative", multi_line=True, timeout=NOTIFY_CRITICAL_TIMEOUT)
+                        show_persistent_error(f"YAML Syntax Error: {error_msg}")
                     except Exception as e:
-                        logger.error(f"unexpected error saving config: {e}")
-                        ui.notify(f"unexpected error: {e}", color="negative", timeout=10)
+                        error_msg = str(e)
+                        logger.error(f"unexpected error saving config: {error_msg}")
+                        ui.notify(f"unexpected error: {error_msg}", color="negative", timeout=NOTIFY_ERROR_TIMEOUT)
+                        show_persistent_error(f"Error: {error_msg}")
 
                 def send_test_notification():
                     notifier = NutAlertNotifier(state.config)
@@ -103,10 +156,10 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
                     success, error_msg = notifier.notify_apprise("Test Notification", "This is a test notification from nutalert.")
                     if success:
                         logger.info("test notification sent successfully")
-                        ui.notify("test notification sent successfully", color="positive", timeout=5)
+                        ui.notify("test notification sent successfully", color="positive", timeout=NOTIFY_SUCCESS_TIMEOUT)
                     else:
                         logger.error(f"test notification failed: {error_msg}")
-                        ui.notify(f"notification failed: {error_msg}", color="negative", multi_line=True, timeout=10)
+                        ui.notify(f"notification failed: {error_msg}", color="negative", multi_line=True, timeout=NOTIFY_ERROR_TIMEOUT)
 
                 ui.button("Save Configuration", on_click=save_and_apply, icon="save", color=COLOR_THEME["button_color"])
                 ui.button("Test Notification", on_click=send_test_notification, icon="notification_important", color=COLOR_THEME["button_color"])
