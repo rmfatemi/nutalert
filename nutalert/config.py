@@ -77,7 +77,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "notifications": {
         "enabled": True,
         "cooldown": 60,
-        "urls": [],
+        "urls": "",
     },
     "ups_devices": {},
 }
@@ -168,33 +168,24 @@ def _build_commented_config(config: Dict[str, Any]) -> CommentedMap:
     notif.yaml_add_eol_comment("Enable/disable all notifications", "enabled")
     notif.yaml_add_eol_comment("Minimum seconds between repeated alerts", "cooldown")
     
-    urls_cfg = notif_cfg.get("urls", [])
-    urls = CommentedSeq()
+    urls_cfg = notif_cfg.get("urls", "")
     
-    if not urls_cfg:
-        notif["urls"] = urls
-        notif.yaml_add_eol_comment(
-            "Add notification URLs here. Format: - url: tgram://token/chatid  enabled: true",
-            "urls"
-        )
-    else:
-        urls.yaml_set_comment_before_after_key(
-            0,
-            before="Notification URLs (Apprise format) - see https://github.com/caronc/apprise",
-            indent=2
-        )
+    if isinstance(urls_cfg, list):
+        url_lines = []
         for item in urls_cfg:
-            if isinstance(item, str):
-                url_entry = CommentedMap()
-                url_entry["url"] = item
-                url_entry["enabled"] = True
-                urls.append(url_entry)
+            if isinstance(item, str) and item:
+                url_lines.append(item)
             elif isinstance(item, dict):
-                url_entry = CommentedMap()
-                url_entry["url"] = item.get("url", "")
-                url_entry["enabled"] = item.get("enabled", True)
-                urls.append(url_entry)
-        notif["urls"] = urls
+                url = item.get("url", "")
+                if url and item.get("enabled", True):
+                    url_lines.append(url)
+        urls_str = "\n".join(url_lines) + "\n" if url_lines else ""
+    else:
+        urls_str = str(urls_cfg) if urls_cfg else ""
+    
+    from ruamel.yaml.scalarstring import LiteralScalarString
+    notif["urls"] = LiteralScalarString(urls_str) if urls_str else ""
+    notif.yaml_add_eol_comment("Apprise URLs, one per line - see https://github.com/caronc/apprise", "urls")
     
     cm["notifications"] = notif
     

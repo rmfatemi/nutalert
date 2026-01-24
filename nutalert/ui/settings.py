@@ -2,7 +2,7 @@ from io import StringIO
 
 from ruamel.yaml import YAML, YAMLError
 from nicegui import ui
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 from nutalert.ui.theme import COLOR_THEME
@@ -20,11 +20,6 @@ NOTIFY_ERROR_TIMEOUT = 20000
 NOTIFY_CRITICAL_TIMEOUT = 30000
 
 
-class UrlConfig(BaseModel):
-    url: str
-    enabled: bool = True
-
-
 class NutServerConfig(BaseModel):
     host: str
     port: int = Field(gt=0, le=65535)
@@ -35,7 +30,7 @@ class NutServerConfig(BaseModel):
 class NotificationsConfig(BaseModel):
     enabled: bool
     cooldown: int
-    urls: List[Union[str, UrlConfig]]
+    urls: str = ""
 
 
 class AppConfig(BaseModel):
