@@ -35,6 +35,6 @@ EXPOSE 8087
 ENV CONFIG_PATH=/config/config.yaml
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -sf http://localhost:8087/health | grep -q '"status"' || exit 1
+  CMD curl -s http://localhost:8087/health | grep -qE '"status":\s*"(healthy|degraded)"' || exit 1
 
 CMD ["python", "-m", "nutalert.app"]
