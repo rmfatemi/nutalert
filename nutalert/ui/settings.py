@@ -65,17 +65,17 @@ def build_configuration_tab(ui_elements: Dict[str, Any], state):
         with ui.row().classes("w-full justify-between items-center gap-x-4 mt-4"):
             with ui.row().classes("items-center gap-x-4"):
                 def show_persistent_error(message: str):
-                    error_banner_container.clear()
-                    with error_banner_container:
+                    ui_elements["error_banner_container"].clear()
+                    with ui_elements["error_banner_container"]:
                         with ui.card().classes("w-full p-3 bg-red-900 border border-red-700"):
                             with ui.row().classes("w-full items-center justify-between"):
                                 with ui.row().classes("items-center gap-2"):
                                     ui.icon("error", color="red-400").classes("text-xl")
                                     ui.label(message).classes("text-red-200 text-sm")
-                                ui.button(icon="close", on_click=lambda: error_banner_container.clear()).props("flat dense round").classes("text-red-400")
+                                ui.button(icon="close", on_click=lambda: ui_elements["error_banner_container"].clear()).props("flat dense round").classes("text-red-400")
                 
                 def clear_error_banner():
-                    error_banner_container.clear()
+                    ui_elements["error_banner_container"].clear()
                 
                 def check_nut_server_changed(new_config_data: dict) -> bool:
                     new_nut = new_config_data.get("nut_server", {})
