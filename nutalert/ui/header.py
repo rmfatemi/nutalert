@@ -4,9 +4,24 @@ from typing import Dict, Any
 from nutalert.ui.theme import COLOR_THEME
 
 
+def _logs_have_errors(logs: str) -> bool:
+    if not logs:
+        return False
+    for line in logs.splitlines():
+        if "[ERROR]" in line.upper():
+            return True
+    return False
+
+
 def get_overall_status(state):
     has_error = False
     has_waiting = False
+    
+    if not state.ups_names:
+        if _logs_have_errors(state.logs):
+            return "error", "warning", COLOR_THEME["warning"], "Check logs", COLOR_THEME["error_bg"]
+        return "waiting", "hourglass_empty", COLOR_THEME["warning"], "No devices", COLOR_THEME["error_bg"]
+    
     for ups in state.ups_names:
         status = state.ups_status.get(ups, "waiting")
         if status == "error":
@@ -14,7 +29,7 @@ def get_overall_status(state):
         elif status == "waiting":
             has_waiting = True
     
-    if has_error:
+    if has_error or _logs_have_errors(state.logs):
         return "error", "warning", COLOR_THEME["warning"], "Check status", COLOR_THEME["error_bg"]
     elif has_waiting:
         return "waiting", "hourglass_empty", COLOR_THEME["warning"], "Checking...", COLOR_THEME["error_bg"]
