@@ -92,37 +92,14 @@ def load_config() -> Dict[str, Any]:
         loaded = None
 
     config = copy.deepcopy(DEFAULT_CONFIG)
-    migrated_from_old_format = False
     
     if loaded:
-        if "ups_devices" not in loaded:
-            migrated_from_old_format = True
-            if "nut_server" in loaded:
-                config["nut_server"] = _deep_to_dict(loaded["nut_server"])
-            if "notifications" in loaded:
-                config["notifications"] = _deep_to_dict(loaded["notifications"])
-            if "check_interval" in loaded and "check_interval" not in config["nut_server"]:
-                config["nut_server"]["check_interval"] = loaded["check_interval"]
-
-            old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
-            if "alert_mode" in loaded:
-                old_settings["alert_mode"] = loaded["alert_mode"]
-            if "basic_alerts" in loaded:
-                old_settings["basic_alerts"] = _deep_to_dict(loaded["basic_alerts"])
-            if "formula_alert" in loaded:
-                old_settings["formula_alert"] = _deep_to_dict(loaded["formula_alert"])
-
-            ups_names = fetch_nut_ups_names(config["nut_server"]["host"], config["nut_server"]["port"])
-            if ups_names:
-                for ups_name in ups_names:
-                    config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
-        else:
-            for k, v in loaded.items():
-                if k == "ups_devices":
-                    continue
-                config[k] = _deep_to_dict(v) if isinstance(v, dict) else v
-            if isinstance(loaded.get("ups_devices"), dict):
-                config["ups_devices"] = _deep_to_dict(loaded["ups_devices"])
+        for k, v in loaded.items():
+            if k == "ups_devices":
+                continue
+            config[k] = _deep_to_dict(v) if isinstance(v, dict) else v
+        if isinstance(loaded.get("ups_devices"), dict):
+            config["ups_devices"] = _deep_to_dict(loaded["ups_devices"])
 
     if "ups_devices" not in config or not isinstance(config["ups_devices"], dict):
         config["ups_devices"] = {}
@@ -134,123 +111,27 @@ def load_config() -> Dict[str, Any]:
             if ups_name not in config["ups_devices"]:
                 config["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
                 new_devices.append(ups_name)
+                logger.info(f"discovered new ups device '{ups_name}'")
 
         config["ups_devices"] = {
             name: cfg for name, cfg in config["ups_devices"].items()
             if name in ups_names
         }
 
-    if new_devices or migrated_from_old_format or not config_file_exists:
-        _save_with_new_devices(loaded, new_devices, config_file_exists, migrated_from_old_format)
+    if new_devices or not config_file_exists:
+        _save_config_file(config)
+        if not config_file_exists:
+            logger.info("created new config file")
 
     return config
 
 
-DEFAULT_CONFIG_TEMPLATE = """# nutalert configuration
-# ups devices are auto-discovered from the nut server on first run
-
-nut_server:
-  host: 127.0.0.1
-  port: 3493
-  check_interval: 15
-
-notifications:
-  enabled: false
-  cooldown: 60
-  urls: []
-  # apprise urls - see https://github.com/caronc/apprise
-  # - tgram://bot_token/chat_id
-  # - discord://webhook_id/webhook_token
-  # - slack://token_a/token_b/token_c
-
-# ups devices will be auto-populated here after connecting to your nut server
-ups_devices: {}
-"""
-
-
-def _extract_old_urls(loaded: dict) -> list:
-    if not loaded:
-        return []
-    notifications = loaded.get("notifications", {})
-    if not isinstance(notifications, dict):
-        return []
-    urls = notifications.get("urls", [])
-    if isinstance(urls, list):
-        return [u for u in urls if u]
-    return []
-
-
-def _save_with_new_devices(loaded, new_devices: list, config_file_exists: bool, migrated_from_old_format: bool = False):
-    if config_file_exists and loaded is not None:
-        was_old_format = "ups_devices" not in loaded
-        if was_old_format:
-            logger.info("migrating config from v1.x to v2.x format")
-            old_urls = _extract_old_urls(loaded)
-            config = copy.deepcopy(DEFAULT_CONFIG)
-            if old_urls:
-                config["notifications"]["urls"] = old_urls
-                logger.info(f"migrated {len(old_urls)} notification url(s)")
-            if "nut_server" in loaded:
-                ns = loaded["nut_server"]
-                if isinstance(ns, dict):
-                    if "host" in ns:
-                        config["nut_server"]["host"] = ns["host"]
-                    if "port" in ns:
-                        config["nut_server"]["port"] = ns["port"]
-                    if "check_interval" in ns:
-                        config["nut_server"]["check_interval"] = ns["check_interval"]
-            if "check_interval" in loaded:
-                config["nut_server"]["check_interval"] = loaded["check_interval"]
-            if "notifications" in loaded:
-                notif = loaded["notifications"]
-                if isinstance(notif, dict):
-                    if "enabled" in notif:
-                        config["notifications"]["enabled"] = notif["enabled"]
-                    if "cooldown" in notif:
-                        config["notifications"]["cooldown"] = notif["cooldown"]
-            old_settings = copy.deepcopy(DEFAULT_UPS_CONFIG)
-            if "alert_mode" in loaded:
-                old_settings["alert_mode"] = loaded["alert_mode"]
-            if "basic_alerts" in loaded:
-                old_settings["basic_alerts"] = _deep_to_dict(loaded["basic_alerts"])
-            if "formula_alert" in loaded:
-                old_settings["formula_alert"] = _deep_to_dict(loaded["formula_alert"])
-            host = config["nut_server"]["host"]
-            port = config["nut_server"]["port"]
-            ups_names = fetch_nut_ups_names(host, port)
-            if ups_names:
-                for ups_name in ups_names:
-                    config["ups_devices"][ups_name] = copy.deepcopy(old_settings)
-                    logger.info(f"migrated settings for ups '{ups_name}'")
-            try:
-                with open(CONFIG_PATH, "w") as f:
-                    _yaml.dump(config, f)
-                logger.info("config migration completed successfully")
-            except Exception as e:
-                logger.error(f"failed to save config: {e}")
-            return
-                    
-        for ups_name in new_devices:
-            if ups_name not in loaded.get("ups_devices", {}):
-                if "ups_devices" not in loaded:
-                    loaded["ups_devices"] = {}
-                loaded["ups_devices"][ups_name] = copy.deepcopy(DEFAULT_UPS_CONFIG)
-                logger.info(f"discovered new ups device '{ups_name}'")
-        
-        try:
-            with open(CONFIG_PATH, "w") as f:
-                _yaml.dump(loaded, f)
-            if new_devices:
-                logger.info(f"config updated with {len(new_devices)} new device(s)")
-        except Exception as e:
-            logger.error(f"failed to save config: {e}")
-    else:
-        try:
-            with open(CONFIG_PATH, "w") as f:
-                f.write(DEFAULT_CONFIG_TEMPLATE)
-            logger.info("created new config file")
-        except Exception as e:
-            logger.error(f"failed to create config: {e}")
+def _save_config_file(config: Dict[str, Any]):
+    try:
+        with open(CONFIG_PATH, "w") as f:
+            _yaml.dump(config, f)
+    except Exception as e:
+        logger.error(f"failed to save config: {e}")
 
 
 def _deep_to_dict(obj):
