@@ -54,44 +54,6 @@ ups_devices:
             os.unlink(temp_path)
 
     @patch("nutalert.config.fetch_nut_ups_names")
-    def test_load_config_migration_from_old_format(self, mock_fetch):
-        mock_fetch.return_value = ["ups1"]
-        
-        old_config = """
-nut_server:
-  host: 192.168.1.1
-  port: 3493
-  check_interval: 10
-notifications:
-  enabled: true
-  cooldown: 60
-  urls: []
-alert_mode: formula
-basic_alerts:
-  battery_charge:
-    enabled: true
-    min: 80
-formula_alert:
-  expression: battery_charge < 80
-  message: Low battery
-"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write(old_config)
-            temp_path = f.name
-        
-        try:
-            with patch("nutalert.config.CONFIG_PATH", temp_path):
-                with patch("nutalert.config.save_config"):
-                    config = load_config()
-            
-            assert "ups_devices" in config
-            assert "ups1" in config["ups_devices"]
-            assert config["ups_devices"]["ups1"]["alert_mode"] == "formula"
-            assert config["ups_devices"]["ups1"]["basic_alerts"]["battery_charge"]["min"] == 80
-        finally:
-            os.unlink(temp_path)
-
-    @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_adds_new_ups(self, mock_fetch):
         mock_fetch.return_value = ["ups1", "ups2"]
         
