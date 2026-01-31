@@ -32,6 +32,7 @@ nicegui==3.6.1
 oauthlib==3.3.1
 orjson==3.11.5
 packaging==26.0
+paho-mqtt==2.1.0
 plotly==6.5.2
 propcache==0.4.1
 pydantic-core==2.41.5
