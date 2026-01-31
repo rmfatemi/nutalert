@@ -24,19 +24,25 @@ class NutAlertNotifier:
             for line in urls_config.strip().splitlines():
                 url = line.strip()
                 if url and not url.startswith("#"):
-                    ap_obj.add(url)
+                    if not ap_obj.add(url):
+                        scheme = url.split("://")[0] if "://" in url else "unknown"
+                        logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
         elif isinstance(urls_config, list):
             for item in urls_config:
                 if isinstance(item, str):
                     if item:
-                        ap_obj.add(item)
+                        if not ap_obj.add(item):
+                            scheme = item.split("://")[0] if "://" in item else "unknown"
+                            logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
                 elif isinstance(item, dict):
                     if item.get("enabled", True):
                         url = item.get("url")
                         if url:
-                            ap_obj.add(url)
+                            if not ap_obj.add(url):
+                                scheme = url.split("://")[0] if "://" in url else "unknown"
+                                logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
         if not ap_obj.servers:
-            error_msg = "no enabled apprise urls found"
+            error_msg = "no enabled apprise urls found - all configured urls failed to load (see warnings above)"
             logger.error(error_msg)
             return False, error_msg
         short_body = ("this message had to be shortened: \n" if len(message) > 1900 else "") + message[:1900]
