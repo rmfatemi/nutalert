@@ -29,7 +29,7 @@ DEFAULT_UPS_CONFIG: Dict[str, Any] = {
     "gauge_settings": {
         "load": {"warn_threshold": 80, "high_threshold": 100},
         "charge_remaining": {"warn_threshold": 35, "high_threshold": 15},
-        "runtime": {"warn_threshold": 15, "high_threshold": 5},
+        "runtime": {"warn_threshold": 15, "high_threshold": 5, "max": 180},
         "voltage": {"nominal": 120, "warn_deviation": 10, "high_deviation": 15},
     },
     "basic_alerts": {
@@ -237,6 +237,7 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     runtime_cfg = gs_cfg.get("runtime", {})
     runtime["warn_threshold"] = runtime_cfg.get("warn_threshold", 15)
     runtime["high_threshold"] = runtime_cfg.get("high_threshold", 5)
+    runtime["max"] = runtime_cfg.get("max", 180)
     runtime.yaml_add_eol_comment("Yellow below this (minutes)", "warn_threshold")
     runtime.yaml_add_eol_comment("Red below this (minutes)", "high_threshold")
     gs["runtime"] = runtime
