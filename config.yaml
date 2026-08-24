@@ -26,6 +26,7 @@ ups_devices:
       runtime:
         warn_threshold: 15  # Yellow below this (minutes)
         high_threshold: 5 # Red below this (minutes)
+        max: 180 # Gauge max (minutes)
       voltage:
         nominal: 120  # Expected voltage (230 for EU)
         warn_deviation: 10 # % deviation for yellow

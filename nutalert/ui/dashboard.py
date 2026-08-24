@@ -117,6 +117,7 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
     charge_high = safe_get(gs.get("charge_remaining", {}), "high_threshold", 15)
     runtime_warn = safe_get(gs.get("runtime", {}), "warn_threshold", 15)
     runtime_high = safe_get(gs.get("runtime", {}), "high_threshold", 10)
+    runtime_max = safe_get(gs.get("runtime", {}), "max", 180)
     voltage_nominal = safe_get(gs.get("voltage", {}), "nominal", 120)
     voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
     voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
@@ -156,7 +157,7 @@ def build_dashboard_tab(ui_elements: Dict[str, Any], state):
                     "Runtime (min)",
                     "runtime",
                     0,
-                    max(180, runtime_warn * 2),
+                    max(runtime_max, runtime_warn * 2),
                     state.config,
                     warn=runtime_warn,
                     high=runtime_high,

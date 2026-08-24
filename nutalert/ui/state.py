@@ -106,6 +106,7 @@ class AppState:
             charge_high = safe_get(gs.get("charge_remaining", {}), "high_threshold", 15)
             runtime_warn = safe_get(gs.get("runtime", {}), "warn_threshold", 15)
             runtime_high = safe_get(gs.get("runtime", {}), "high_threshold", 10)
+            runtime_max = safe_get(gs.get("runtime", {}), "max", 180)
             voltage_nominal = safe_get(gs.get("voltage", {}), "nominal", 120)
             voltage_warn = safe_get(gs.get("voltage", {}), "warn_deviation", 10)
             voltage_high = safe_get(gs.get("voltage", {}), "high_deviation", 15)
@@ -137,7 +138,7 @@ class AppState:
             if "runtime_plot" in ui_elements:
                 runtime_seconds = float(ups_values.get("battery.runtime", 0.0))
                 runtime_minutes = runtime_seconds / 60 if runtime_seconds else 0.0
-                runtime_range_max = max(180, runtime_warn * 2)
+                runtime_range_max = max(runtime_max, runtime_warn * 2)
                 ui_elements["runtime_plot"].figure = create_dial_gauge(
                     runtime_minutes,
                     "Runtime (min)",
