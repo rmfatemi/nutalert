@@ -28,11 +28,6 @@ def create_dial_gauge(
             {"range": [warn_load, max_load], "color": COLOR_THEME["warning"]},
             {"range": [max_load, range_max], "color": COLOR_THEME["error"]},
         ]
-        bar_color = (
-            COLOR_THEME["error"]
-            if value > max_load
-            else COLOR_THEME["warning"] if value > warn_load else COLOR_THEME["success"]
-        )
     elif metric_type == "charge":
         crit_charge = high if high is not None else basic_alerts.get("battery_charge", {}).get("min", 20)
         warn_charge = warn if warn is not None else crit_charge + 15
@@ -41,11 +36,6 @@ def create_dial_gauge(
             {"range": [crit_charge, warn_charge], "color": COLOR_THEME["warning"]},
             {"range": [warn_charge, 100], "color": COLOR_THEME["success"]},
         ]
-        bar_color = (
-            COLOR_THEME["error"]
-            if value < crit_charge
-            else COLOR_THEME["warning"] if value < warn_charge else COLOR_THEME["success"]
-        )
     elif metric_type == "runtime":
         crit_runtime = high if high is not None else basic_alerts.get("runtime", {}).get("min", 5)
         warn_runtime = warn if warn is not None else crit_runtime + 10
@@ -54,11 +44,6 @@ def create_dial_gauge(
             {"range": [crit_runtime, warn_runtime], "color": COLOR_THEME["warning"]},
             {"range": [warn_runtime, range_max], "color": COLOR_THEME["success"]},
         ]
-        bar_color = (
-            COLOR_THEME["error"]
-            if value < crit_runtime
-            else COLOR_THEME["warning"] if value < warn_runtime else COLOR_THEME["success"]
-        )
     elif metric_type == "voltage":
         nominal_voltage = nominal if nominal is not None else 120
         warn_deviation = warn if warn is not None else 10
@@ -72,15 +57,6 @@ def create_dial_gauge(
             {"range": [min_voltage, max_voltage], "color": COLOR_THEME["success"]},
             {"range": [max_voltage, display_max], "color": COLOR_THEME["warning"]},
         ]
-        bar_color = (
-            COLOR_THEME["success"]
-            if min_voltage <= value <= max_voltage
-            else (
-                COLOR_THEME["warning"]
-                if display_min <= value < min_voltage or max_voltage < value <= display_max
-                else COLOR_THEME["error"]
-            )
-        )
         range_min = display_min
         range_max = display_max
 
