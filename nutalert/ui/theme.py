@@ -1,6 +1,6 @@
 COLOR_THEME = {
     "background": "#121212",
-    "primary": "#505090",
+    "primary": "#FFFFFF",
     "secondary": "#263238",
     "text": "#E0E0E0",
     "card": "#2B2B2B",
