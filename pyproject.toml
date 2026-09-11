@@ -13,11 +13,11 @@ readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "pyyaml>=6.0",
-    "apprise>=1.9.3",
+    "apprise>=1.13.1",
     "paho-mqtt>=2.0.0",
-    "plotly>=6.1.2",
-    "nicegui>=2.19.0",
-    "pydantic>=2.11.5",
+    "plotly>=7.0.0",
+    "nicegui>=3.16.0",
+    "pydantic>=2.13.5",
     "ruamel-yaml>=0.19.1,<0.20.0",
 ]
 
