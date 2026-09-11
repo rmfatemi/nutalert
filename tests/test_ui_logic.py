@@ -8,6 +8,10 @@ sys.modules['nicegui.ui'] = MagicMock()
 sys.modules['plotly'] = MagicMock()
 sys.modules['plotly.graph_objects'] = MagicMock()
 
+from nutalert.ui.dashboard import create_dial_gauge
+from nutalert.ui.theme import COLOR_THEME
+import plotly.graph_objects as go
+
 
 class MockState:
     def __init__(self, ups_names=None, ups_status=None):
@@ -40,47 +44,6 @@ def get_overall_status_logic(ups_names, ups_status):
         return "waiting", "hourglass_empty", COLOR_THEME_MOCK["warning"], "Checking...", COLOR_THEME_MOCK["error_bg"]
     else:
         return "ok", "check_circle", COLOR_THEME_MOCK["success"], "Healthy", COLOR_THEME_MOCK["success_bg"]
-
-
-def get_load_gauge_color(value, warn, high):
-    if value > high:
-        return COLOR_THEME_MOCK["error"]
-    elif value > warn:
-        return COLOR_THEME_MOCK["warning"]
-    else:
-        return COLOR_THEME_MOCK["success"]
-
-
-def get_charge_gauge_color(value, warn, high):
-    if value < high:
-        return COLOR_THEME_MOCK["error"]
-    elif value < warn:
-        return COLOR_THEME_MOCK["warning"]
-    else:
-        return COLOR_THEME_MOCK["success"]
-
-
-def get_runtime_gauge_color(value, warn, high):
-    if value < high:
-        return COLOR_THEME_MOCK["error"]
-    elif value < warn:
-        return COLOR_THEME_MOCK["warning"]
-    else:
-        return COLOR_THEME_MOCK["success"]
-
-
-def get_voltage_gauge_color(value, nominal, warn_deviation, high_deviation):
-    min_voltage = nominal - warn_deviation
-    max_voltage = nominal + warn_deviation
-    display_min = nominal - high_deviation
-    display_max = nominal + high_deviation
-    
-    if min_voltage <= value <= max_voltage:
-        return COLOR_THEME_MOCK["success"]
-    elif display_min <= value < min_voltage or max_voltage < value <= display_max:
-        return COLOR_THEME_MOCK["warning"]
-    else:
-        return COLOR_THEME_MOCK["error"]
 
 
 class TestGetOverallStatus:
@@ -138,62 +101,23 @@ class TestGetOverallStatus:
         assert status == "waiting"
 
 
-class TestGaugeThresholds:
-    def test_load_gauge_green_zone(self):
-        color = get_load_gauge_color(value=50, warn=80, high=100)
-        assert color == COLOR_THEME_MOCK["success"]
+class TestGaugeBarColor:
+    """the gauge bar is a static white (theme primary), not dynamic per value."""
 
-    def test_load_gauge_yellow_zone(self):
-        color = get_load_gauge_color(value=90, warn=80, high=100)
-        assert color == COLOR_THEME_MOCK["warning"]
+    def _bar_color(self, metric_type, value, **kwargs):
+        create_dial_gauge(value, "Test", metric_type, 0, 100, {}, **kwargs)
+        return go.Indicator.call_args.kwargs["gauge"]["bar"]["color"]
 
-    def test_load_gauge_red_zone(self):
-        color = get_load_gauge_color(value=105, warn=80, high=100)
-        assert color == COLOR_THEME_MOCK["error"]
+    def test_bar_color_is_static_white_for_all_metrics(self):
+        for metric_type in ("load", "charge", "runtime", "voltage"):
+            assert self._bar_color(metric_type, 50) == COLOR_THEME["primary"]
 
-    def test_charge_gauge_green_zone(self):
-        color = get_charge_gauge_color(value=80, warn=35, high=15)
-        assert color == COLOR_THEME_MOCK["success"]
+    def test_bar_color_does_not_change_with_value(self):
+        for value in (10, 50, 90, 110):
+            assert self._bar_color("load", value) == COLOR_THEME["primary"]
 
-    def test_charge_gauge_yellow_zone(self):
-        color = get_charge_gauge_color(value=25, warn=35, high=15)
-        assert color == COLOR_THEME_MOCK["warning"]
-
-    def test_charge_gauge_red_zone(self):
-        color = get_charge_gauge_color(value=10, warn=35, high=15)
-        assert color == COLOR_THEME_MOCK["error"]
-
-    def test_runtime_gauge_green_zone(self):
-        color = get_runtime_gauge_color(value=60, warn=15, high=5)
-        assert color == COLOR_THEME_MOCK["success"]
-
-    def test_runtime_gauge_yellow_zone(self):
-        color = get_runtime_gauge_color(value=10, warn=15, high=5)
-        assert color == COLOR_THEME_MOCK["warning"]
-
-    def test_runtime_gauge_red_zone(self):
-        color = get_runtime_gauge_color(value=3, warn=15, high=5)
-        assert color == COLOR_THEME_MOCK["error"]
-
-    def test_voltage_gauge_green_zone(self):
-        color = get_voltage_gauge_color(value=120, nominal=120, warn_deviation=10, high_deviation=15)
-        assert color == COLOR_THEME_MOCK["success"]
-
-    def test_voltage_gauge_yellow_zone_low(self):
-        color = get_voltage_gauge_color(value=108, nominal=120, warn_deviation=10, high_deviation=15)
-        assert color == COLOR_THEME_MOCK["warning"]
-
-    def test_voltage_gauge_yellow_zone_high(self):
-        color = get_voltage_gauge_color(value=132, nominal=120, warn_deviation=10, high_deviation=15)
-        assert color == COLOR_THEME_MOCK["warning"]
-
-    def test_voltage_gauge_boundary_warn_low(self):
-        color = get_voltage_gauge_color(value=110, nominal=120, warn_deviation=10, high_deviation=15)
-        assert color == COLOR_THEME_MOCK["success"]
-
-    def test_voltage_gauge_boundary_warn_high(self):
-        color = get_voltage_gauge_color(value=130, nominal=120, warn_deviation=10, high_deviation=15)
-        assert color == COLOR_THEME_MOCK["success"]
+    def test_primary_is_white(self):
+        assert COLOR_THEME["primary"] == "#FFFFFF"
 
 
 class MockStateWithLogs:
