@@ -96,6 +96,9 @@ def check_ups_status(basic_alerts, env, ups_name=None):
         if _should_skip_due_to_unchanged_status(basic_alerts, env["ups_status"], ups_name):
             return None
         return f"{message} ({env['ups_status']})"
+
+    # status is acceptable: reset tracking so the next status change alerts again
+    previous_ups_status[ups_name or "default"] = env["ups_status"]
     return None
 
 
@@ -105,7 +108,6 @@ def _should_skip_due_to_unchanged_status(basic_alerts, current_status: str, ups_
 
     global previous_ups_status
     key = ups_name or "default"
-    logger.info("alert_when_status_changed enabled")
     if previous_ups_status.get(key) == current_status:
         logger.info(f"status unchanged: {current_status} (skipping alert)")
         return True

@@ -1,16 +1,15 @@
-import pytest
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
-sys.modules['nicegui'] = MagicMock()
-sys.modules['nicegui.ui'] = MagicMock()
-sys.modules['plotly'] = MagicMock()
-sys.modules['plotly.graph_objects'] = MagicMock()
+sys.modules["nicegui"] = MagicMock()
+sys.modules["nicegui.ui"] = MagicMock()
+sys.modules["plotly"] = MagicMock()
+sys.modules["plotly.graph_objects"] = MagicMock()
 
-from nutalert.ui.dashboard import create_dial_gauge
-from nutalert.ui.theme import COLOR_THEME
-import plotly.graph_objects as go
+from nutalert.ui.dashboard import create_dial_gauge  # noqa: E402
+from nutalert.ui.theme import COLOR_THEME  # noqa: E402
+import plotly.graph_objects as go  # noqa: E402
 
 
 class MockState:
@@ -37,7 +36,7 @@ def get_overall_status_logic(ups_names, ups_status):
             has_error = True
         elif status == "waiting":
             has_waiting = True
-    
+
     if has_error:
         return "error", "warning", COLOR_THEME_MOCK["warning"], "Check status", COLOR_THEME_MOCK["error_bg"]
     elif has_waiting:
@@ -48,56 +47,43 @@ def get_overall_status_logic(ups_names, ups_status):
 
 class TestGetOverallStatus:
     def test_all_devices_ok(self):
-        status, icon, color, label, bg = get_overall_status_logic(
-            ["ups1", "ups2"],
-            {"ups1": "ok", "ups2": "ok"}
-        )
-        
+        status, icon, color, label, bg = get_overall_status_logic(["ups1", "ups2"], {"ups1": "ok", "ups2": "ok"})
+
         assert status == "ok"
         assert icon == "check_circle"
         assert label == "Healthy"
 
     def test_one_device_error(self):
-        status, icon, color, label, bg = get_overall_status_logic(
-            ["ups1", "ups2"],
-            {"ups1": "ok", "ups2": "error"}
-        )
-        
+        status, icon, color, label, bg = get_overall_status_logic(["ups1", "ups2"], {"ups1": "ok", "ups2": "error"})
+
         assert status == "error"
         assert icon == "warning"
         assert label == "Check status"
 
     def test_device_waiting(self):
-        status, icon, color, label, bg = get_overall_status_logic(
-            ["ups1", "ups2"],
-            {"ups1": "ok", "ups2": "waiting"}
-        )
-        
+        status, icon, color, label, bg = get_overall_status_logic(["ups1", "ups2"], {"ups1": "ok", "ups2": "waiting"})
+
         assert status == "waiting"
         assert icon == "hourglass_empty"
         assert label == "Checking..."
 
     def test_error_takes_precedence_over_waiting(self):
         status, icon, color, label, bg = get_overall_status_logic(
-            ["ups1", "ups2", "ups3"],
-            {"ups1": "ok", "ups2": "waiting", "ups3": "error"}
+            ["ups1", "ups2", "ups3"], {"ups1": "ok", "ups2": "waiting", "ups3": "error"}
         )
-        
+
         assert status == "error"
         assert label == "Check status"
 
     def test_no_devices(self):
         status, icon, color, label, bg = get_overall_status_logic([], {})
-        
+
         assert status == "ok"
         assert label == "Healthy"
 
     def test_missing_status_defaults_to_waiting(self):
-        status, icon, color, label, bg = get_overall_status_logic(
-            ["ups1", "ups2"],
-            {"ups1": "ok"}
-        )
-        
+        status, icon, color, label, bg = get_overall_status_logic(["ups1", "ups2"], {"ups1": "ok"})
+
         assert status == "waiting"
 
 

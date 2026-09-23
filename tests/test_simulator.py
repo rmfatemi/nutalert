@@ -1,13 +1,11 @@
 import socket
 import threading
-import time
 import pytest
 
 from tests.simulate_nut_server import (
     UPS_DATA,
     INITIAL_RUNTIMES,
     handle_client,
-    update_dynamic_values,
 )
 
 

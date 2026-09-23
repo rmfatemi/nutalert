@@ -1,11 +1,16 @@
 import os
-import pytest
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from nutalert.config import (
-    load_config, save_config, DEFAULT_CONFIG, DEFAULT_UPS_CONFIG,
-    _is_old_format, _migrate_v1_to_v2, CURRENT_CONFIG_VERSION
+    load_config,
+    save_config,
+    DEFAULT_CONFIG,
+    DEFAULT_UPS_CONFIG,
+    _is_old_format,
+    _migrate_v1_to_v2,
+    CURRENT_CONFIG_VERSION,
+    _yaml,
 )
 
 
@@ -14,20 +19,51 @@ class TestLoadConfig:
     @patch("nutalert.config.CONFIG_PATH", "/tmp/nonexistent_config.yaml")
     def test_load_config_no_file(self, mock_fetch):
         mock_fetch.return_value = ["test_ups"]
-        
+
         with patch("nutalert.config.os.path.exists", return_value=False):
-            with patch("nutalert.config.save_config") as mock_save:
+            with patch("nutalert.config._save_config_file"):
                 config = load_config()
-        
+
         assert "nut_server" in config
         assert "notifications" in config
         assert "ups_devices" in config
         assert "test_ups" in config["ups_devices"]
 
     @patch("nutalert.config.fetch_nut_ups_names")
+    def test_load_config_unreadable_file_backed_up(self, mock_fetch):
+        mock_fetch.return_value = []
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("{{{{this is not: [valid yaml")
+            temp_path = f.name
+
+        try:
+            with patch("nutalert.config.CONFIG_PATH", temp_path):
+                config = load_config()
+
+            assert "nut_server" in config
+            assert config["ups_devices"] == {}
+
+            with open(temp_path, "r") as f:
+                regenerated = _yaml.load(f)
+            assert isinstance(regenerated, dict)
+            assert regenerated["config_version"] == CURRENT_CONFIG_VERSION
+
+            backups = [
+                p
+                for p in os.listdir(os.path.dirname(temp_path))
+                if p.endswith(".bak") and p.startswith(os.path.basename(temp_path))
+            ]
+            assert len(backups) == 1
+            for backup in backups:
+                os.unlink(os.path.join(os.path.dirname(temp_path), backup))
+        finally:
+            os.unlink(temp_path)
+
+    @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_with_existing_file(self, mock_fetch):
         mock_fetch.return_value = ["ups1"]
-        
+
         test_config = """
 nut_server:
   host: 192.168.1.1
@@ -44,11 +80,11 @@ ups_devices:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(test_config)
             temp_path = f.name
-        
+
         try:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 config = load_config()
-            
+
             assert config["nut_server"]["host"] == "192.168.1.1"
             assert config["nut_server"]["check_interval"] == 30
             assert config["notifications"]["enabled"] is False
@@ -59,7 +95,7 @@ ups_devices:
     @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_adds_new_ups(self, mock_fetch):
         mock_fetch.return_value = ["ups1", "ups2"]
-        
+
         test_config = """
 nut_server:
   host: localhost
@@ -76,12 +112,12 @@ ups_devices:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(test_config)
             temp_path = f.name
-        
+
         try:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 with patch("nutalert.config.save_config"):
                     config = load_config()
-            
+
             assert "ups1" in config["ups_devices"]
             assert "ups2" in config["ups_devices"]
             assert config["ups_devices"]["ups1"]["alert_mode"] == "basic"
@@ -92,7 +128,7 @@ ups_devices:
     @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_keeps_offline_ups(self, mock_fetch):
         mock_fetch.return_value = ["new_ups"]
-        
+
         test_config = """
 nut_server:
   host: localhost
@@ -111,7 +147,7 @@ ups_devices:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(test_config)
             temp_path = f.name
-        
+
         try:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 with patch("nutalert.config._save_config_file"):
@@ -131,16 +167,16 @@ class TestSaveConfig:
             "nut_server": {"host": "localhost", "port": 3493},
             "ups_devices": {"ups": {"alert_mode": "basic"}},
         }
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             temp_path = f.name
-        
+
         try:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 result = save_config(config)
-            
+
             assert "successfully" in result.lower()
-            
+
             with open(temp_path, "r") as f:
                 content = f.read()
             assert "localhost" in content
@@ -150,10 +186,10 @@ class TestSaveConfig:
 
     def test_save_config_failure(self):
         config = {"test": "data"}
-        
+
         with patch("nutalert.config.CONFIG_PATH", "/nonexistent/path/config.yaml"):
             result = save_config(config)
-        
+
         assert "failed" in result.lower()
 
 
@@ -163,7 +199,7 @@ class TestDefaultConfig:
         assert "notifications" in DEFAULT_CONFIG
         assert "ups_devices" in DEFAULT_CONFIG
         assert "config_version" in DEFAULT_CONFIG
-        
+
         assert "host" in DEFAULT_CONFIG["nut_server"]
         assert "port" in DEFAULT_CONFIG["nut_server"]
         assert "check_interval" in DEFAULT_CONFIG["nut_server"]
@@ -173,7 +209,7 @@ class TestDefaultConfig:
         assert "gauge_settings" in DEFAULT_UPS_CONFIG
         assert "basic_alerts" in DEFAULT_UPS_CONFIG
         assert "formula_alert" in DEFAULT_UPS_CONFIG
-        
+
         assert "load" in DEFAULT_UPS_CONFIG["gauge_settings"]
         assert "charge_remaining" in DEFAULT_UPS_CONFIG["gauge_settings"]
         assert "runtime" in DEFAULT_UPS_CONFIG["gauge_settings"]
@@ -216,9 +252,9 @@ class TestConfigMigration:
             "basic_alerts": {"battery_charge": {"enabled": True, "min": 80}},
             "formula_alert": {"expression": "test expr", "message": "test msg"},
         }
-        
+
         new_config = _migrate_v1_to_v2(old_config)
-        
+
         assert new_config["config_version"] == CURRENT_CONFIG_VERSION
         assert new_config["nut_server"]["host"] == "192.168.1.100"
         assert new_config["nut_server"]["check_interval"] == 30
@@ -231,9 +267,9 @@ class TestConfigMigration:
             "basic_alerts": {"battery_charge": {"enabled": False, "min": 75}},
             "formula_alert": {"expression": "custom_expr", "message": "custom_msg"},
         }
-        
+
         new_config = _migrate_v1_to_v2(old_config)
-        
+
         assert "_migrated_device_config" in new_config
         device_cfg = new_config["_migrated_device_config"]
         assert device_cfg["alert_mode"] == "formula"
@@ -246,7 +282,7 @@ class TestConfigMigration:
     def test_load_config_migrates_old_format(self, mock_save, mock_backup, mock_fetch):
         mock_fetch.return_value = ["my_ups"]
         mock_backup.return_value = "/tmp/config.yaml.bak"
-        
+
         old_config = """
 nut_server:
   host: docker.home
@@ -272,11 +308,11 @@ formula_alert:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(old_config)
             temp_path = f.name
-        
+
         try:
             with patch("nutalert.config.CONFIG_PATH", temp_path):
                 config = load_config()
-            
+
             assert config["config_version"] == CURRENT_CONFIG_VERSION
             assert "my_ups" in config["ups_devices"]
             assert config["ups_devices"]["my_ups"]["alert_mode"] == "formula"
