@@ -10,6 +10,7 @@ from nutalert.config import (
     _is_old_format,
     _migrate_v1_to_v2,
     CURRENT_CONFIG_VERSION,
+    _yaml,
 )
 
 
@@ -27,6 +28,37 @@ class TestLoadConfig:
         assert "notifications" in config
         assert "ups_devices" in config
         assert "test_ups" in config["ups_devices"]
+
+    @patch("nutalert.config.fetch_nut_ups_names")
+    def test_load_config_unreadable_file_backed_up(self, mock_fetch):
+        mock_fetch.return_value = []
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("{{{{this is not: [valid yaml")
+            temp_path = f.name
+
+        try:
+            with patch("nutalert.config.CONFIG_PATH", temp_path):
+                config = load_config()
+
+            assert "nut_server" in config
+            assert config["ups_devices"] == {}
+
+            with open(temp_path, "r") as f:
+                regenerated = _yaml.load(f)
+            assert isinstance(regenerated, dict)
+            assert regenerated["config_version"] == CURRENT_CONFIG_VERSION
+
+            backups = [
+                p
+                for p in os.listdir(os.path.dirname(temp_path))
+                if p.endswith(".bak") and p.startswith(os.path.basename(temp_path))
+            ]
+            assert len(backups) == 1
+            for backup in backups:
+                os.unlink(os.path.join(os.path.dirname(temp_path), backup))
+        finally:
+            os.unlink(temp_path)
 
     @patch("nutalert.config.fetch_nut_ups_names")
     def test_load_config_with_existing_file(self, mock_fetch):

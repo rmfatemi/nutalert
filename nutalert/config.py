@@ -299,15 +299,24 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
 def load_config() -> Dict[str, Any]:
     config_file_exists = os.path.exists(CONFIG_PATH)
     loaded = None
+    unreadable = False
 
     if config_file_exists:
         try:
             with open(CONFIG_PATH, "r") as f:
                 loaded = _yaml.load(f)
-        except Exception:
+        except Exception as e:
+            logger.error(f"failed to parse config file: {e}")
             loaded = None
+            unreadable = True
 
     if not isinstance(loaded, dict):
+        if unreadable:
+            backup_path = _backup_config()
+            if backup_path:
+                logger.warning(f"config file was unreadable; backup saved to {backup_path}, regenerating defaults")
+            else:
+                logger.warning("config file was unreadable; regenerating defaults (no backup created)")
         loaded = None
 
     migrated_device_config = None
@@ -348,12 +357,14 @@ def load_config() -> Dict[str, Any]:
             if name not in ups_names:
                 logger.warning(f"ups device '{name}' not found on server (keeping in config)")
 
-    if new_devices or not config_file_exists or migrated_device_config:
+    if new_devices or not config_file_exists or migrated_device_config or unreadable:
         _save_config_file(config)
         if not config_file_exists:
             logger.info("created new config file")
         elif migrated_device_config:
             logger.info("saved migrated config file")
+        elif unreadable:
+            logger.info("regenerated config file after unreadable file")
 
     return config
 
