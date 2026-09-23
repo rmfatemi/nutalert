@@ -12,8 +12,8 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "pyyaml>=6.0",
     "apprise>=1.13.1",
+    "fastapi>=0.141.1",
     "paho-mqtt>=2.0.0",
     "plotly>=7.0.0",
     "nicegui>=3.16.0",
@@ -30,6 +30,11 @@ dev = [
     "pre-commit>=4.2.0",
     "deptry>=0.23.0",
 ]
+
+[tool.deptry.per_rule_ignores]
+# paho-mqtt is a runtime requirement of apprise for mqtt:// notification urls;
+# dev extras are tooling, not imported by the package
+DEP002 = ["paho-mqtt", "pytest", "pre-commit", "deptry"]
 
 [tool.black]
 target-version = ["py311"]
