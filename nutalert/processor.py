@@ -52,7 +52,7 @@ def get_ups_data_and_alerts(config: dict):
             if not ups_config:
                 logger.error(f"[{ups_name}] missing config entry")
                 continue
-            is_alerting, alert_message = should_alert(ups_values, ups_config)
+            is_alerting, alert_message = should_alert(ups_values, ups_config, ups_name)
             all_alerts[ups_name] = (alert_message, is_alerting)
             if is_alerting and "config error" not in alert_message.lower():
                 logger.warning(f"[{ups_name}] alert: {alert_message}")

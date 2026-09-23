@@ -12,6 +12,14 @@ class NutAlertNotifier:
         self.config = config
         self.container = container_name
 
+    def _add_apprise_url(self, ap_obj, url: str) -> None:
+        if not ap_obj.add(url):
+            scheme = url.split("://")[0] if "://" in url else "unknown"
+            logger.warning(
+                f"failed to add notification url with scheme '{scheme}://' - check url format or install required"
+                " dependencies"
+            )
+
     def notify_apprise(self, title: str, message: str, file_path: str | None = None) -> Tuple[bool, str]:
         ap_obj = apprise.Apprise()
         notifications_cfg = self.config.get("notifications", {})
@@ -24,23 +32,15 @@ class NutAlertNotifier:
             for line in urls_config.strip().splitlines():
                 url = line.strip()
                 if url and not url.startswith("#"):
-                    if not ap_obj.add(url):
-                        scheme = url.split("://")[0] if "://" in url else "unknown"
-                        logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
+                    self._add_apprise_url(ap_obj, url)
         elif isinstance(urls_config, list):
             for item in urls_config:
                 if isinstance(item, str):
                     if item:
-                        if not ap_obj.add(item):
-                            scheme = item.split("://")[0] if "://" in item else "unknown"
-                            logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
+                        self._add_apprise_url(ap_obj, item)
                 elif isinstance(item, dict):
-                    if item.get("enabled", True):
-                        url = item.get("url")
-                        if url:
-                            if not ap_obj.add(url):
-                                scheme = url.split("://")[0] if "://" in url else "unknown"
-                                logger.warning(f"failed to add notification url with scheme '{scheme}://' - check url format or install required dependencies")
+                    if item.get("enabled", True) and item.get("url"):
+                        self._add_apprise_url(ap_obj, item["url"])
         if not ap_obj.servers:
             error_msg = "no enabled apprise urls found - all configured urls failed to load (see warnings above)"
             logger.error(error_msg)

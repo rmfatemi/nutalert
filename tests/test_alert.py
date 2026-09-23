@@ -1,6 +1,3 @@
-import pytest
-from unittest.mock import patch, MagicMock
-
 from nutalert.alert import (
     prepare_ups_env,
     check_battery_charge,
@@ -24,9 +21,9 @@ class TestPrepareUpsEnv:
             "input.voltage": 120.5,
             "ups.status": "OL",
         }
-        
+
         env = prepare_ups_env(nut_values)
-        
+
         assert env["ups_load"] == 25
         assert env["battery_charge"] == 100
         assert env["battery_runtime"] == 3600
@@ -37,9 +34,9 @@ class TestPrepareUpsEnv:
 
     def test_prepare_env_with_missing_data(self):
         nut_values = {}
-        
+
         env = prepare_ups_env(nut_values)
-        
+
         assert env["ups_load"] == 0
         assert env["battery_charge"] == 0
         assert env["battery_runtime"] == 0
@@ -51,153 +48,194 @@ class TestPrepareUpsEnv:
 
 class TestCheckBatteryCharge:
     def test_battery_charge_below_threshold(self):
-        basic_alerts = {
-            "battery_charge": {"min": 90, "message": "Low battery"}
-        }
+        basic_alerts = {"battery_charge": {"min": 90, "message": "Low battery"}}
         env = {"battery_charge": 80}
-        
+
         result = check_battery_charge(basic_alerts, env)
-        
+
         assert result == "Low battery"
 
     def test_battery_charge_above_threshold(self):
-        basic_alerts = {
-            "battery_charge": {"min": 90, "message": "Low battery"}
-        }
+        basic_alerts = {"battery_charge": {"min": 90, "message": "Low battery"}}
         env = {"battery_charge": 100}
-        
+
         result = check_battery_charge(basic_alerts, env)
-        
+
         assert result is None
 
     def test_battery_charge_missing_min(self):
         basic_alerts = {"battery_charge": {"message": "Low battery"}}
         env = {"battery_charge": 80}
-        
+
         result = check_battery_charge(basic_alerts, env)
-        
+
         assert "config error" in result.lower()
 
 
 class TestCheckRuntime:
     def test_runtime_below_threshold(self):
-        basic_alerts = {
-            "runtime": {"min": 15, "message": "Low runtime"}
-        }
+        basic_alerts = {"runtime": {"min": 15, "message": "Low runtime"}}
         env = {"actual_runtime_minutes": 10}
-        
+
         result = check_runtime(basic_alerts, env)
-        
+
         assert "Low runtime" in result
         assert "10.0min" in result
 
     def test_runtime_above_threshold(self):
-        basic_alerts = {
-            "runtime": {"min": 15, "message": "Low runtime"}
-        }
+        basic_alerts = {"runtime": {"min": 15, "message": "Low runtime"}}
         env = {"actual_runtime_minutes": 60}
-        
+
         result = check_runtime(basic_alerts, env)
-        
+
         assert result is None
 
 
 class TestCheckLoad:
     def test_load_above_threshold(self):
-        basic_alerts = {
-            "load": {"max": 50, "message": "High load"}
-        }
+        basic_alerts = {"load": {"max": 50, "message": "High load"}}
         env = {"ups_load": 60}
-        
+
         result = check_load(basic_alerts, env)
-        
+
         assert "High load" in result
         assert "60.0%" in result
 
     def test_load_below_threshold(self):
-        basic_alerts = {
-            "load": {"max": 50, "message": "High load"}
-        }
+        basic_alerts = {"load": {"max": 50, "message": "High load"}}
         env = {"ups_load": 30}
-        
+
         result = check_load(basic_alerts, env)
-        
+
         assert result is None
 
 
 class TestCheckInputVoltage:
     def test_voltage_below_min(self):
-        basic_alerts = {
-            "input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}
-        }
+        basic_alerts = {"input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}}
         env = {"input_voltage": 100}
-        
+
         result = check_input_voltage(basic_alerts, env)
-        
+
         assert "Bad voltage" in result
 
     def test_voltage_above_max(self):
-        basic_alerts = {
-            "input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}
-        }
+        basic_alerts = {"input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}}
         env = {"input_voltage": 140}
-        
+
         result = check_input_voltage(basic_alerts, env)
-        
+
         assert "Bad voltage" in result
 
     def test_voltage_in_range(self):
-        basic_alerts = {
-            "input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}
-        }
+        basic_alerts = {"input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}}
         env = {"input_voltage": 120}
-        
+
         result = check_input_voltage(basic_alerts, env)
-        
+
         assert result is None
 
     def test_voltage_zero(self):
-        basic_alerts = {
-            "input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}
-        }
+        basic_alerts = {"input_voltage": {"min": 110, "max": 130, "message": "Bad voltage"}}
         env = {"input_voltage": 0}
-        
+
         result = check_input_voltage(basic_alerts, env)
-        
+
         assert result is None
 
 
 class TestCheckUpsStatus:
     def test_status_not_acceptable(self):
-        basic_alerts = {
-            "ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}
-        }
+        basic_alerts = {"ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}}
         env = {"ups_status": "ob"}
-        
+
         result = check_ups_status(basic_alerts, env)
-        
+
         assert "Bad status" in result
         assert "ob" in result
 
     def test_status_acceptable(self):
-        basic_alerts = {
-            "ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}
-        }
+        basic_alerts = {"ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}}
         env = {"ups_status": "ol"}
-        
+
         result = check_ups_status(basic_alerts, env)
-        
+
         assert result is None
 
     def test_status_empty(self):
-        basic_alerts = {
-            "ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}
-        }
+        basic_alerts = {"ups_status": {"acceptable": ["ol", "online"], "message": "Bad status"}}
         env = {"ups_status": ""}
-        
+
         result = check_ups_status(basic_alerts, env)
-        
+
         assert result is None
+
+
+class TestAlertWhenStatusChanged:
+    def setup_method(self):
+        from nutalert.alert import previous_ups_status
+
+        previous_ups_status.clear()
+
+    def test_unchanged_status_skips_alert(self):
+        basic_alerts = {
+            "ups_status": {
+                "acceptable": ["ol"],
+                "alert_when_status_changed": True,
+                "message": "Bad status",
+            }
+        }
+        env = {"ups_status": "ob"}
+
+        assert "Bad status" in check_ups_status(basic_alerts, env, ups_name="ups1")
+        assert check_ups_status(basic_alerts, env, ups_name="ups1") is None
+
+    def test_changed_status_alerts(self):
+        basic_alerts = {
+            "ups_status": {
+                "acceptable": ["ol"],
+                "alert_when_status_changed": True,
+                "message": "Bad status",
+            }
+        }
+
+        assert "ob" in check_ups_status(basic_alerts, {"ups_status": "ob"}, ups_name="ups1")
+        assert "lb" in check_ups_status(basic_alerts, {"ups_status": "lb"}, ups_name="ups1")
+
+    def test_disabled_alerts_every_poll(self):
+        basic_alerts = {
+            "ups_status": {"acceptable": ["ol"], "alert_when_status_changed": False, "message": "Bad status"}
+        }
+        env = {"ups_status": "ob"}
+
+        assert "Bad status" in check_ups_status(basic_alerts, env, ups_name="ups1")
+        assert "Bad status" in check_ups_status(basic_alerts, env, ups_name="ups1")
+
+    def test_status_tracking_is_per_device(self):
+        basic_alerts = {
+            "ups_status": {
+                "acceptable": ["ol"],
+                "alert_when_status_changed": True,
+                "message": "Bad status",
+            }
+        }
+        env = {"ups_status": "ob"}
+
+        check_ups_status(basic_alerts, env, ups_name="ups1")
+        assert "Bad status" in check_ups_status(basic_alerts, env, ups_name="ups2")
+
+    def test_acceptable_status_resets_tracking(self):
+        basic_alerts = {
+            "ups_status": {
+                "acceptable": ["ol"],
+                "alert_when_status_changed": True,
+                "message": "Bad status",
+            }
+        }
+
+        check_ups_status(basic_alerts, {"ups_status": "ob"}, ups_name="ups1")
+        check_ups_status(basic_alerts, {"ups_status": "ol"}, ups_name="ups1")
+        assert "Bad status" in check_ups_status(basic_alerts, {"ups_status": "ob"}, ups_name="ups1")
 
 
 class TestCheckBasicAlerts:
@@ -210,9 +248,9 @@ class TestCheckBasicAlerts:
             }
         }
         env = {"battery_charge": 80, "ups_load": 60, "actual_runtime_minutes": 5}
-        
+
         result = check_basic_alerts(config, env)
-        
+
         assert len(result) == 2
         assert any("Low battery" in r for r in result)
         assert any("High load" in r for r in result)
@@ -225,9 +263,9 @@ class TestCheckBasicAlerts:
             }
         }
         env = {"battery_charge": 100, "ups_load": 20}
-        
+
         result = check_basic_alerts(config, env)
-        
+
         assert len(result) == 0
 
 
@@ -240,9 +278,9 @@ class TestCheckFormulaAlert:
             }
         }
         env = {"battery_charge": 80, "ups_load": 30, "actual_runtime_minutes": 60}
-        
+
         is_alerting, message = check_formula_alert(config, env)
-        
+
         assert is_alerting is True
         assert "80%" in message
         assert "30%" in message
@@ -255,9 +293,9 @@ class TestCheckFormulaAlert:
             }
         }
         env = {"battery_charge": 100, "ups_load": 20, "actual_runtime_minutes": 60}
-        
+
         is_alerting, message = check_formula_alert(config, env)
-        
+
         assert is_alerting is False
         assert "UPS Ok" in message
 
@@ -269,9 +307,9 @@ class TestCheckFormulaAlert:
             }
         }
         env = {"battery_charge": 80, "ups_load": 30, "actual_runtime_minutes": 60}
-        
+
         is_alerting, message = check_formula_alert(config, env)
-        
+
         assert is_alerting is True
         assert "error" in message.lower()
 
@@ -285,9 +323,9 @@ class TestShouldAlert:
                 "battery_charge": {"enabled": True, "min": 90, "message": "Low battery"},
             },
         }
-        
+
         is_alerting, message = should_alert(nut_values, config)
-        
+
         assert is_alerting is True
         assert "Low battery" in message
 
@@ -299,9 +337,9 @@ class TestShouldAlert:
                 "battery_charge": {"enabled": True, "min": 90, "message": "Low battery"},
             },
         }
-        
+
         is_alerting, message = should_alert(nut_values, config)
-        
+
         assert is_alerting is False
         assert "UPS Ok" in message
 
@@ -314,16 +352,16 @@ class TestShouldAlert:
                 "message": "Formula alert",
             },
         }
-        
+
         is_alerting, message = should_alert(nut_values, config)
-        
+
         assert is_alerting is True
 
     def test_unknown_alert_mode(self):
         nut_values = {"battery.charge": 100}
         config = {"alert_mode": "unknown_mode"}
-        
+
         is_alerting, message = should_alert(nut_values, config)
-        
+
         assert is_alerting is True
         assert "unknown alert mode" in message.lower()

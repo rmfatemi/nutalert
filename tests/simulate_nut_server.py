@@ -266,10 +266,10 @@ def handle_client(conn, addr):
 
         elif command.startswith("SET VAR"):
             parts = raw_data.decode("utf-8").strip().split()
-            if len(parts) >= 5 and parts[3] == "=":
+            if len(parts) >= 6 and parts[4] == "=":
                 ups_name = parts[2]
-                var_name = parts[4]
-                var_value = " ".join(parts[6:])
+                var_name = parts[3]
+                var_value = " ".join(parts[5:])
                 if ups_name in UPS_DATA and var_name in UPS_DATA[ups_name]:
                     UPS_DATA[ups_name][var_name] = var_value
                     response = "OK\n"

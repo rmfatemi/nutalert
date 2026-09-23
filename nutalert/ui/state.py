@@ -38,7 +38,7 @@ class AppState:
                     nut_values, all_alerts, is_alerting, new_logs = result
                     self.nut_values = nut_values or self.nut_values
                     new_status = {}
-                    
+
                     if isinstance(all_alerts, dict):
                         for ups_name in self.config.get("ups_devices", {}):
                             if ups_name in all_alerts:
@@ -51,11 +51,11 @@ class AppState:
                     else:
                         for ups_name in self.config.get("ups_devices", {}):
                             new_status[ups_name] = "error" if is_alerting else "waiting"
-                    
+
                     if is_alerting and not new_status:
                         for ups_name in self.config.get("ups_devices", {}):
                             new_status[ups_name] = "error"
-                    
+
                     self.ups_status = new_status
                     self.ups_names = list(self.config.get("ups_devices", {}).keys())
                     if not self.selected_ups or self.selected_ups not in self.ups_names:
@@ -63,23 +63,23 @@ class AppState:
                     self.alert_message = str(all_alerts)
                     self.is_alerting = is_alerting
                     self.logs = new_logs or self.logs
-                    
+
                     current_log_lines = len(self.logs.splitlines()) if self.logs else 0
-                    new_log_content = self.logs.splitlines()[self._last_log_line_count:] if self.logs else []
+                    new_log_content = self.logs.splitlines()[self._last_log_line_count :] if self.logs else []
                     has_new_errors = any("[ERROR]" in line.upper() for line in new_log_content)
-                    
+
                     if has_new_errors or is_alerting:
                         self._consecutive_clean_polls = 0
                     else:
                         self._consecutive_clean_polls += 1
-                    
+
                     self._last_log_line_count = current_log_lines
-                    
+
                     if not self._initial_load_done and self.ups_names:
                         self._initial_load_done = True
                         if self._selector_refresh_callback:
                             self._selector_refresh_callback()
-                        if hasattr(self, '_rebuild_tabs_callback') and self._rebuild_tabs_callback:
+                        if hasattr(self, "_rebuild_tabs_callback") and self._rebuild_tabs_callback:
                             self._rebuild_tabs_callback()
             except Exception as e:
                 logger.error(f"polling error: {e}")
@@ -171,7 +171,7 @@ class AppState:
                 with grid:
                     if ups_values:
                         for idx, (key, value) in enumerate(sorted(ups_values.items())):
-                            with ui.row().classes(f"w-full items-center justify-between px-4"):
+                            with ui.row().classes("w-full items-center justify-between px-4"):
                                 ui.label(f"{key}:").classes("font-mono text-sm font-bold")
                                 ui.label(str(value)).classes("font-mono text-sm")
 
@@ -180,21 +180,26 @@ class AppState:
                 log_element.clear()
                 for line in self.logs.splitlines():
                     log_element.push(line)
-            
-            if "header_status_card" in ui_elements and "header_status_icon" in ui_elements and "header_status_label" in ui_elements:
+
+            if (
+                "header_status_card" in ui_elements
+                and "header_status_icon" in ui_elements
+                and "header_status_label" in ui_elements
+            ):
                 from nutalert.ui.header import get_overall_status
+
                 _, status_icon, status_color, status_label, status_bg, status_tooltip = get_overall_status(self)
 
                 ui_elements["header_status_card"].style(f"background:{status_bg};")
                 ui_elements["header_status_icon"].props(f"name={status_icon}").style(f"color: {status_color}")
                 ui_elements["header_status_label"].set_text(status_label)
-                
+
                 if "header_status_tooltip" in ui_elements:
                     ui_elements["header_status_tooltip"].set_text(status_tooltip)
-            
+
             if "ups_tabs" in ui_elements:
                 ui_elements["ups_tabs"].set_value(self.selected_ups)
-        
+
         except RuntimeError as e:
             if "has been deleted" not in str(e):
                 logger.error(f"ui update error: {e}")

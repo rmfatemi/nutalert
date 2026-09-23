@@ -29,7 +29,6 @@ COPY --from=builder /app/pyproject.toml .
 RUN mkdir /config && chown appuser:appgroup /config
 VOLUME /config
 
-EXPOSE 3493
 EXPOSE 8087
 
 ENV CONFIG_PATH=/config/config.yaml

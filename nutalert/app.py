@@ -29,7 +29,7 @@ async def dashboard_page():
         ui_elements["tabs_container"].set_visibility(True)
         if "dashboard_container" in ui_elements:
             ui_elements["dashboard_container"].classes(remove="opacity-0", add="opacity-100")
-    
+
     def show_settings():
         state.current_page = "settings"
         ui_elements["main_content"].clear()
@@ -37,7 +37,7 @@ async def dashboard_page():
             build_configuration_tab(ui_elements, state)
         ui_elements["nav_button"].props("icon=home")
         ui_elements["tabs_container"].set_visibility(False)
-    
+
     async def handle_selection(selected_ups):
         if selected_ups == state.selected_ups:
             return
@@ -48,18 +48,18 @@ async def dashboard_page():
         state.update_ui_components(ui_elements)
         if "dashboard_container" in ui_elements:
             ui_elements["dashboard_container"].classes(remove="opacity-0", add="opacity-100")
-    
+
     def toggle_page():
         if state.current_page == "dashboard":
             show_settings()
         else:
             show_dashboard()
-    
+
     build_header(ui_elements, state, on_settings_click=toggle_page, on_logo_click=show_dashboard)
-    
+
     with ui_elements["header_center"]:
         ups_selector_row(ui_elements, state, handle_selection)
-    
+
     state._selector_refresh_callback = lambda: None
     state._rebuild_tabs_callback = ui_elements.get("rebuild_ups_tabs")
 
@@ -79,9 +79,9 @@ async def health_check():
     has_devices = len(state.ups_names) > 0
     all_ok = all(status == "ok" for status in state.ups_status.values()) if state.ups_status else False
     any_error = any(status == "error" for status in state.ups_status.values())
-    
+
     status = "healthy" if has_devices and all_ok else "degraded" if any_error else "starting"
-    
+
     return JSONResponse(
         content={
             "status": status,
@@ -89,7 +89,7 @@ async def health_check():
             "devices_ok": sum(1 for s in state.ups_status.values() if s == "ok"),
             "devices_error": sum(1 for s in state.ups_status.values() if s == "error"),
         },
-        status_code=200 if status in ["healthy", "degraded"] else 503
+        status_code=200 if status in ["healthy", "degraded"] else 503,
     )
 
 

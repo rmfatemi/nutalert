@@ -7,7 +7,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 from ruamel.yaml import YAML
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.comments import CommentedMap
 
 from nutalert.fetcher import fetch_nut_ups_names
 from nutalert.utils import setup_logger
@@ -15,7 +15,9 @@ from nutalert.utils import setup_logger
 
 logger = setup_logger("config")
 
-CONFIG_PATH = os.environ.get("CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml")))
+CONFIG_PATH = os.environ.get(
+    "CONFIG_PATH", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.yaml"))
+)
 
 CURRENT_CONFIG_VERSION = 2
 
@@ -107,50 +109,50 @@ def _backup_config() -> str | None:
 
 def _migrate_v1_to_v2(old_config: Dict[str, Any]) -> Dict[str, Any]:
     logger.info("migrating config from v1 to v2 format...")
-    
+
     new_config = copy.deepcopy(DEFAULT_CONFIG)
     new_config["config_version"] = CURRENT_CONFIG_VERSION
-    
+
     if "nut_server" in old_config:
         new_config["nut_server"] = old_config["nut_server"].copy()
         if "check_interval" not in new_config["nut_server"] and "check_interval" in old_config:
             new_config["nut_server"]["check_interval"] = old_config["check_interval"]
     elif "check_interval" in old_config:
         new_config["nut_server"]["check_interval"] = old_config["check_interval"]
-    
+
     if "notifications" in old_config:
         new_config["notifications"] = old_config["notifications"].copy()
-    
+
     device_config = copy.deepcopy(DEFAULT_UPS_CONFIG)
-    
+
     if "alert_mode" in old_config:
         device_config["alert_mode"] = old_config["alert_mode"]
-    
+
     if "basic_alerts" in old_config:
         device_config["basic_alerts"] = old_config["basic_alerts"].copy()
-    
+
     if "formula_alert" in old_config:
         device_config["formula_alert"] = old_config["formula_alert"].copy()
-    
+
     new_config["_migrated_device_config"] = device_config
-    
+
     logger.info("config migration completed")
     return new_config
 
 
 def _build_commented_config(config: Dict[str, Any]) -> CommentedMap:
     cm = CommentedMap()
-    
+
     cm.yaml_set_start_comment(
         "NutAlert Configuration\n"
         "======================\n"
         "UPS devices are auto-discovered from your NUT server.\n"
         "Edit values below and save to apply changes.\n"
     )
-    
+
     cm["config_version"] = config.get("config_version", CURRENT_CONFIG_VERSION)
     cm.yaml_add_eol_comment("Do not modify - used for migration", "config_version")
-    
+
     nut = CommentedMap()
     nut_cfg = config.get("nut_server", DEFAULT_CONFIG["nut_server"])
     nut["host"] = nut_cfg.get("host", "127.0.0.1")
@@ -160,16 +162,16 @@ def _build_commented_config(config: Dict[str, Any]) -> CommentedMap:
     nut.yaml_add_eol_comment("NUT server port", "port")
     nut.yaml_add_eol_comment("Polling interval in seconds", "check_interval")
     cm["nut_server"] = nut
-    
+
     notif = CommentedMap()
     notif_cfg = config.get("notifications", DEFAULT_CONFIG["notifications"])
     notif["enabled"] = notif_cfg.get("enabled", True)
     notif["cooldown"] = notif_cfg.get("cooldown", 60)
     notif.yaml_add_eol_comment("Enable/disable all notifications", "enabled")
     notif.yaml_add_eol_comment("Minimum seconds between repeated alerts", "cooldown")
-    
+
     urls_cfg = notif_cfg.get("urls", "")
-    
+
     if isinstance(urls_cfg, list):
         url_lines = []
         for item in urls_cfg:
@@ -182,41 +184,42 @@ def _build_commented_config(config: Dict[str, Any]) -> CommentedMap:
         urls_str = "\n".join(url_lines) + "\n" if url_lines else ""
     else:
         urls_str = str(urls_cfg) if urls_cfg else ""
-    
+
     from ruamel.yaml.scalarstring import LiteralScalarString
+
     notif["urls"] = LiteralScalarString(urls_str) if urls_str else ""
     notif.yaml_add_eol_comment("Apprise URLs, one per line - see https://github.com/caronc/apprise", "urls")
-    
+
     cm["notifications"] = notif
-    
+
     devices = CommentedMap()
     devices_cfg = config.get("ups_devices", {})
-    
+
     if not devices_cfg:
         devices.yaml_set_start_comment(
             "UPS devices will be auto-discovered from your NUT server.\n"
             "Once discovered, customize per-device settings here."
         )
-    
+
     for device_name, device_cfg in devices_cfg.items():
         dev = _build_commented_device_config(device_cfg)
         devices[device_name] = dev
-    
+
     cm["ups_devices"] = devices
-    
+
     return cm
 
 
 def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     dev = CommentedMap()
     cfg = {**DEFAULT_UPS_CONFIG, **device_cfg}
-    
+
     dev["alert_mode"] = cfg.get("alert_mode", "basic")
     dev.yaml_add_eol_comment('"basic" for thresholds, "formula" for custom logic', "alert_mode")
-    
+
     gs = CommentedMap()
     gs_cfg = cfg.get("gauge_settings", DEFAULT_UPS_CONFIG["gauge_settings"])
-    
+
     load = CommentedMap()
     load_cfg = gs_cfg.get("load", {})
     load["warn_threshold"] = load_cfg.get("warn_threshold", 80)
@@ -224,7 +227,7 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     load.yaml_add_eol_comment("Yellow above this %", "warn_threshold")
     load.yaml_add_eol_comment("Red above this %", "high_threshold")
     gs["load"] = load
-    
+
     charge = CommentedMap()
     charge_cfg = gs_cfg.get("charge_remaining", {})
     charge["warn_threshold"] = charge_cfg.get("warn_threshold", 35)
@@ -232,7 +235,7 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     charge.yaml_add_eol_comment("Yellow below this %", "warn_threshold")
     charge.yaml_add_eol_comment("Red below this %", "high_threshold")
     gs["charge_remaining"] = charge
-    
+
     runtime = CommentedMap()
     runtime_cfg = gs_cfg.get("runtime", {})
     runtime["warn_threshold"] = runtime_cfg.get("warn_threshold", 15)
@@ -241,7 +244,7 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     runtime.yaml_add_eol_comment("Yellow below this (minutes)", "warn_threshold")
     runtime.yaml_add_eol_comment("Red below this (minutes)", "high_threshold")
     gs["runtime"] = runtime
-    
+
     voltage = CommentedMap()
     voltage_cfg = gs_cfg.get("voltage", {})
     voltage["nominal"] = voltage_cfg.get("nominal", 120)
@@ -251,18 +254,18 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
     voltage.yaml_add_eol_comment("% deviation for yellow", "warn_deviation")
     voltage.yaml_add_eol_comment("% deviation for red", "high_deviation")
     gs["voltage"] = voltage
-    
+
     dev["gauge_settings"] = gs
-    
+
     ba = CommentedMap()
     ba_cfg = cfg.get("basic_alerts", DEFAULT_UPS_CONFIG["basic_alerts"])
-    
+
     for alert_name in ["battery_charge", "runtime", "load", "input_voltage", "ups_status"]:
         alert = CommentedMap()
         alert_cfg = ba_cfg.get(alert_name, DEFAULT_UPS_CONFIG["basic_alerts"].get(alert_name, {}))
-        
+
         alert["enabled"] = alert_cfg.get("enabled", True)
-        
+
         if "min" in alert_cfg:
             alert["min"] = alert_cfg["min"]
         if "max" in alert_cfg:
@@ -271,27 +274,32 @@ def _build_commented_device_config(device_cfg: Dict[str, Any]) -> CommentedMap:
             alert["acceptable"] = alert_cfg["acceptable"]
         if "alert_when_status_changed" in alert_cfg:
             alert["alert_when_status_changed"] = alert_cfg["alert_when_status_changed"]
-        
-        alert["message"] = alert_cfg.get("message", DEFAULT_UPS_CONFIG["basic_alerts"].get(alert_name, {}).get("message", ""))
-        
+
+        alert["message"] = alert_cfg.get(
+            "message", DEFAULT_UPS_CONFIG["basic_alerts"].get(alert_name, {}).get("message", "")
+        )
+
         ba[alert_name] = alert
-    
+
     dev["basic_alerts"] = ba
-    
+
     fa = CommentedMap()
     fa_cfg = cfg.get("formula_alert", DEFAULT_UPS_CONFIG["formula_alert"])
     fa["expression"] = fa_cfg.get("expression", DEFAULT_UPS_CONFIG["formula_alert"]["expression"])
     fa["message"] = fa_cfg.get("message", DEFAULT_UPS_CONFIG["formula_alert"]["message"])
-    fa.yaml_add_eol_comment("Variables: ups_load, battery_charge, actual_runtime_minutes, battery_voltage, input_voltage, ups_status", "expression")
+    fa.yaml_add_eol_comment(
+        "Variables: ups_load, battery_charge, actual_runtime_minutes, battery_voltage, input_voltage, ups_status",
+        "expression",
+    )
     dev["formula_alert"] = fa
-    
+
     return dev
 
 
 def load_config() -> Dict[str, Any]:
     config_file_exists = os.path.exists(CONFIG_PATH)
     loaded = None
-    
+
     if config_file_exists:
         try:
             with open(CONFIG_PATH, "r") as f:
@@ -310,7 +318,7 @@ def load_config() -> Dict[str, Any]:
         logger.info("old config format detected and migrated")
 
     config = copy.deepcopy(DEFAULT_CONFIG)
-    
+
     if loaded:
         for k, v in loaded.items():
             if k == "ups_devices":
